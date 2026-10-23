@@ -4,9 +4,9 @@
  * Serves the Git API the browser half's tool window uses over one prefix route:
  * repository discovery, status, log, graph, branches, one file diff, one file
  * body, the tracked-file list, a lazy directory listing for the project tree,
- * the local Git Bash path, one commit patch, plus two local actions the panel
- * offers: switching the checked-out branch and revealing the repository in the
- * OS file manager.
+ * the local Git Bash path, one commit patch, plus the local actions the panel
+ * offers: switching, creating and renaming a branch, pull --ff-only, push, and
+ * revealing the repository in the OS file manager.
  *
  * Repository discovery:
  * - Workspaces come from `ctx.workspaceRegistry` when the host composes it,
@@ -22,10 +22,10 @@
  *   name or path can never be interpreted by a shell.
  * - `GIT_TERMINAL_PROMPT=0` so a credential prompt can never hang the route.
  * - Every op has a timeout; output is capped.
- * - Reads are the only thing reachable except `switch` (git switch/checkout to
- *   an existing local branch) and `reveal` (opens the repository folder). Both
- *   require the panel's `x-dsh-git-workbench: 1` header, so a cross-origin page
- *   cannot trigger them; no commit/add/push/reset path exists.
+ * - Reads are open. Mutations (`switch`, `branchCreate`, `branchRename`, `pull`,
+ *   `push`, `reveal`) require the panel's `x-dsh-git-workbench: 1` header, so a
+ *   cross-origin page cannot trigger them. There is no add, commit, reset, or
+ *   `--force` path. Pull is `--ff-only`. Push never uses `--force`.
  */
 import { spawn } from 'node:child_process'
 import { lstat, readdir, readFile, stat } from 'node:fs/promises'
@@ -33,6 +33,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 const GIT_TIMEOUT_MS = 12000
+const GIT_NETWORK_TIMEOUT_MS = 60000
 const MAX_STDOUT = 8 * 1024 * 1024
 const MAX_FILE_PREVIEW = 200 * 1024
 const MAX_LISTED_FILES = 5000
@@ -70,7 +71,7 @@ function splitPathList(value) {
   return value.split(/[\n;,]/).map((item) => item.trim()).filter(Boolean)
 }
 
-function git(args, cwd) {
+function git(args, cwd, timeoutMs = GIT_TIMEOUT_MS) {
   return new Promise((resolve) => {
     let settled = false
     const done = (result) => {
@@ -103,7 +104,7 @@ function git(args, cwd) {
     const timer = setTimeout(() => {
       try { child.kill() } catch { /* ignore */ }
       done({ ok: false, code: -1, stdout, stderr: 'timeout' })
-    }, GIT_TIMEOUT_MS)
+    }, timeoutMs)
     child.stdout.on('data', (chunk) => {
       bytes += chunk.length
       if (bytes <= MAX_STDOUT) stdout += chunk.toString('utf8')
@@ -139,9 +140,38 @@ function branchNameCandidate(value) {
   return name
 }
 
-/** Open a directory in Explorer / Finder / the desktop's file manager. */
+/** Validate a branch name the same way `switch` does, before git sees it. */
+async function acceptBranchName(repo, value) {
+  const branch = branchNameCandidate(value)
+  if (!branch) return { error: { status: 400, body: { error: '分支名为空或不是合法的分支名' } } }
+  const check = await git(['check-ref-format', '--branch', branch], repo)
+  if (!check.ok) return { error: { status: 400, body: { error: `分支名不合法：${branch}` } } }
+  return { branch }
+}
+
+async function currentBranchName(repo) {
+  const head = await git(['rev-parse', '--abbrev-ref', 'HEAD'], repo)
+  const name = head.ok ? head.stdout.trim() : ''
+  if (!name || name === 'HEAD') return ''
+  return name
+}
+
+async function localBranchExists(repo, branch) {
+  const exists = await git(['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`], repo)
+  return exists.ok
+}
+
+/**
+ * Open a directory in Explorer / Finder / the desktop's file manager.
+ * On Windows, `spawn('explorer.exe', { windowsHide: true })` sets SW_HIDE, so
+ * the folder window never appears. `cmd /c start` hides only the console;
+ * Explorer itself is a separate process and stays visible.
+ */
 function revealDirectory(target) {
-  const command = process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open'
+  const command = process.platform === 'win32' ? 'cmd.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open'
+  const args = process.platform === 'win32'
+    ? ['/d', '/s', '/c', `start "" "${String(target).replace(/"/g, '')}"`]
+    : [target]
   return new Promise((resolve) => {
     let settled = false
     const done = (value) => {
@@ -150,7 +180,7 @@ function revealDirectory(target) {
       resolve(value)
     }
     try {
-      const child = spawn(command, [target], { detached: true, stdio: 'ignore', windowsHide: true })
+      const child = spawn(command, args, { detached: true, stdio: 'ignore', windowsHide: true })
       child.once('error', (error) => done({ ok: false, error: String((error && error.message) || error) }))
       child.once('spawn', () => done({ ok: true }))
       child.unref()
@@ -850,6 +880,81 @@ async function handleOp(op, params, host = {}) {
     const opened = await revealDirectory(target)
     if (!opened.ok) return { status: 500, body: { error: `打不开文件管理器：${opened.error}` } }
     return { status: 200, body: { repo: target, opened: true } }
+  }
+
+  if (op === 'branchCreate') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '新建分支只能从 Git 面板发起' } }
+    const accepted = await acceptBranchName(repo, params.branch)
+    if (accepted.error) return accepted.error
+    const branch = accepted.branch
+    if (await localBranchExists(repo, branch)) {
+      return { status: 409, body: { error: `本地已有分支 ${branch}`, repo, branch } }
+    }
+    let result = await git(['switch', '-c', branch], repo)
+    let command = 'switch -c'
+    if (!result.ok && /not a git command|unknown option|unknown switch/i.test(result.stderr)) {
+      command = 'checkout -b'
+      result = await git(['checkout', '-b', branch], repo)
+    }
+    if (!result.ok) {
+      const detail = String(result.stderr || '').trim() || 'git 拒绝新建分支'
+      return { status: 409, body: { error: detail, repo, branch } }
+    }
+    repoCache.delete(pathKey(repo))
+    return { status: 200, body: { repo, branch, command } }
+  }
+
+  if (op === 'branchRename') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '改分支名只能从 Git 面板发起' } }
+    const accepted = await acceptBranchName(repo, params.branch)
+    if (accepted.error) return accepted.error
+    const branch = accepted.branch
+    const previous = await currentBranchName(repo)
+    if (!previous) return { status: 409, body: { error: '当前不在分支上（分离 HEAD），不能改名', repo } }
+    if (previous === branch) return { status: 200, body: { repo, branch, previous, unchanged: true } }
+    if (await localBranchExists(repo, branch)) {
+      return { status: 409, body: { error: `本地已有分支 ${branch}`, repo, branch } }
+    }
+    const result = await git(['branch', '-m', previous, branch], repo)
+    if (!result.ok) {
+      const detail = String(result.stderr || '').trim() || 'git 拒绝修改分支名'
+      return { status: 409, body: { error: detail, repo, branch } }
+    }
+    repoCache.delete(pathKey(repo))
+    return { status: 200, body: { repo, branch, previous, command: 'branch -m' } }
+  }
+
+  if (op === 'pull') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '拉取只能从 Git 面板发起' } }
+    const result = await git(['pull', '--ff-only'], repo, GIT_NETWORK_TIMEOUT_MS)
+    if (!result.ok) {
+      const detail = String(result.stderr || result.stdout || '').trim() || 'git pull 失败'
+      return { status: 409, body: { error: detail, repo } }
+    }
+    repoCache.delete(pathKey(repo))
+    return { status: 200, body: { repo, text: String(result.stdout || '').trim() } }
+  }
+
+  if (op === 'push') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '推送只能从 Git 面板发起' } }
+    const upstream = await git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'], repo)
+    const hasUpstream = upstream.ok && !!upstream.stdout.trim()
+    let result
+    let command = 'push'
+    if (hasUpstream) {
+      result = await git(['push'], repo, GIT_NETWORK_TIMEOUT_MS)
+    } else {
+      const branch = await currentBranchName(repo)
+      if (!branch) return { status: 409, body: { error: '当前不在分支上，不能推送', repo } }
+      command = 'push -u origin'
+      result = await git(['push', '-u', 'origin', branch], repo, GIT_NETWORK_TIMEOUT_MS)
+    }
+    if (!result.ok) {
+      const detail = String(result.stderr || result.stdout || '').trim() || 'git push 失败'
+      return { status: 409, body: { error: detail, repo } }
+    }
+    repoCache.delete(pathKey(repo))
+    return { status: 200, body: { repo, command, text: String(result.stderr || result.stdout || '').trim() } }
   }
 
   return { status: 400, body: { error: `未知操作：${op}` } }

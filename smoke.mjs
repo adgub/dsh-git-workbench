@@ -72,3 +72,17 @@ const noHeader = await handleOp('switch', { repo, branch: 'master' }, { ctx, con
 console.log('switch (no header):', noHeader.status, head(noHeader.body.error))
 const revealGuard = await handleOp('reveal', { repo }, { ctx, config, headers: {} })
 console.log('reveal (no header):', revealGuard.status, head(revealGuard.body.error))
+if (status.body.branch) {
+  const exists = await handleOp('branchCreate', { repo, branch: status.body.branch }, panel)
+  console.log('branchCreate (exists):', exists.status, head(exists.body.error))
+}
+const badCreate = await handleOp('branchCreate', { repo, branch: '--force' }, panel)
+console.log('branchCreate (option guard):', badCreate.status, head(badCreate.body.error))
+const noHeaderCreate = await handleOp('branchCreate', { repo, branch: 'new-branch' }, { ctx, config, headers: {} })
+console.log('branchCreate (no header):', noHeaderCreate.status, head(noHeaderCreate.body.error))
+const badRename = await handleOp('branchRename', { repo, branch: '--force' }, panel)
+console.log('branchRename (option guard):', badRename.status, head(badRename.body.error))
+const noHeaderPull = await handleOp('pull', { repo }, { ctx, config, headers: {} })
+console.log('pull (no header):', noHeaderPull.status, head(noHeaderPull.body.error))
+const noHeaderPush = await handleOp('push', { repo }, { ctx, config, headers: {} })
+console.log('push (no header):', noHeaderPush.status, head(noHeaderPush.body.error))

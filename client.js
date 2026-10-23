@@ -14,8 +14,9 @@
  *   any path the user adds by hand; several projects can be switched freely and
  *   each project has an editable accent colour.
  *
- * All Git access goes through the host half's read-only route; this module
- * never spawns anything and never writes to the repository.
+ * Git access goes through the host route. This module never spawns a process.
+ * Branch create/rename, pull, push and opening the folder run only when a
+ * panel button asks the host to do it.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-git-workbench',
@@ -59,6 +60,11 @@ window.__ModuleLoader__.load({
     ]
 
     const monospace = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+    const FLOAT_SHADOW = '0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08)'
+    const PANE_SHADOW = '0 8px 28px rgba(0, 0, 0, 0.35)'
+    const CODE_BG = '#0e1116'
+    const CODE_FG = '#e8eef7'
+    const GRAPH_LANE_COLORS = ['#79c0ff', '#7ee787', '#e3b341', '#ff7b72', '#d2a8ff', '#56d4dd', '#ff9bce', '#ffa657']
 
     /** Created by the plugin apply, consumed by the panel registered there. */
     let terminalBridge = null
@@ -124,6 +130,7 @@ window.__ModuleLoader__.load({
         borderRight: '1px solid var(--dsw-alias-border-l1)',
         borderRadius: 0,
         overflow: 'hidden',
+        boxShadow: PANE_SHADOW,
       },
       sidebar: {
         minWidth: SIDEBAR_MIN_WIDTH,
@@ -213,6 +220,7 @@ window.__ModuleLoader__.load({
         border: 'none',
         borderRadius: 0,
         overflow: 'hidden',
+        boxShadow: PANE_SHADOW,
       },
       terminalHead: {
         display: 'flex',
@@ -407,16 +415,23 @@ window.__ModuleLoader__.load({
       },
       segmentActive: { background: 'var(--dsw-alias-bg-layer-1)', color: 'var(--dsw-alias-label-primary)', fontWeight: 600 },
       scroll: { flex: '1 1 auto', overflow: 'auto', minHeight: 0, background: 'var(--dsw-alias-bg-layer-1)', fontFamily: monospace, fontSize: 12, lineHeight: 1.55 },
-      codeRow: { display: 'flex', whiteSpace: 'pre' },
+      codeSurface: {
+        background: CODE_BG,
+        color: CODE_FG,
+        fontFamily: monospace,
+        fontSize: 14,
+        lineHeight: 1.65,
+      },
+      codeRow: { display: 'flex', whiteSpace: 'pre', minHeight: 23 },
       lineNo: {
         flex: '0 0 auto',
-        width: 46,
-        padding: '0 8px 0 0',
+        width: 64,
+        padding: '0 10px 0 8px',
         textAlign: 'right',
-        color: 'var(--dsw-alias-label-secondary)',
+        color: '#7d8794',
         userSelect: 'none',
       },
-      codeText: { flex: '1 1 auto', paddingRight: 14 },
+      codeText: { flex: '1 1 auto', paddingRight: 16, color: CODE_FG },
       empty: { padding: 16, color: 'var(--dsw-alias-label-secondary)', fontSize: 12, lineHeight: 1.5 },
       overlay: { position: 'fixed', inset: 0, zIndex: 30, background: 'transparent' },
       popover: {
@@ -429,7 +444,7 @@ window.__ModuleLoader__.load({
         borderRadius: 6,
         background: 'var(--dsw-alias-bg-layer-2)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.18)',
+        boxShadow: FLOAT_SHADOW,
       },
       input: {
         width: '100%',
@@ -504,14 +519,14 @@ window.__ModuleLoader__.load({
         top: 40,
         left: 0,
         zIndex: 31,
-        width: 320,
+        width: 380,
         maxHeight: 430,
         overflow: 'auto',
         padding: 6,
         borderRadius: 6,
         background: 'var(--dsw-alias-bg-layer-2)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.18)',
+        boxShadow: FLOAT_SHADOW,
       },
       divider: { height: 1, margin: '6px 2px', background: 'var(--dsw-alias-border-l1)' },
       treeRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', cursor: 'pointer', lineHeight: 1.5 },
@@ -578,11 +593,11 @@ window.__ModuleLoader__.load({
       },
       graphRow: {
         display: 'block',
-        padding: '1px 10px',
+        padding: '2px 10px',
         cursor: 'pointer',
         fontFamily: monospace,
-        fontSize: 12,
-        lineHeight: 1.5,
+        fontSize: 13,
+        lineHeight: 1.45,
         whiteSpace: 'pre',
       },
       logRow: { display: 'flex', alignItems: 'center', gap: 8, boxSizing: 'border-box', minHeight: 32, padding: '8px 10px', borderBottom: '1px solid var(--dsw-alias-border-l1)', cursor: 'pointer' },
@@ -623,7 +638,7 @@ window.__ModuleLoader__.load({
         borderRadius: 6,
         background: 'var(--dsw-alias-bg-layer-2)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.18)',
+        boxShadow: FLOAT_SHADOW,
       },
       resultRow: { display: 'flex', alignItems: 'center', gap: 8, boxSizing: 'border-box', minHeight: 32, padding: '8px 10px', borderRadius: 0, borderBottom: '1px solid var(--dsw-alias-border-l1)', cursor: 'pointer' },
       resultActive: { background: 'var(--dsw-alias-bg-layer-1)' },
@@ -670,6 +685,7 @@ window.__ModuleLoader__.load({
         color: 'var(--dsw-alias-label-primary)',
         background: 'var(--dsw-alias-bg-layer-2)',
         border: '1px solid var(--dsw-alias-border-l1)',
+        boxShadow: FLOAT_SHADOW,
       },
     }
 
@@ -871,39 +887,238 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function DiffBody({ text }) {
-      const lines = React.useMemo(() => String(text || '').split('\n'), [text])
-      const shown = lines.slice(0, 6000)
-      return h('div', { style: { padding: '6px 0' } },
-        shown.map((line, index) => {
-          let color = 'inherit'
-          if (line.startsWith('@@')) color = 'var(--dsw-alias-brand-primary)'
-          else if (line.startsWith('+++') || line.startsWith('---')) color = 'var(--dsw-alias-label-secondary)'
-          else if (line.startsWith('+')) color = 'var(--dsw-alias-state-success-primary)'
-          else if (line.startsWith('-')) color = 'var(--dsw-alias-state-error-primary)'
-          else if (line.startsWith('#') || line.startsWith('diff --git') || line.startsWith('index ')) color = 'var(--dsw-alias-label-secondary)'
-          return h('div', { key: index, style: { ...styles.codeRow, color, padding: '0 12px' } },
-            h('span', null, line === '' ? ' ' : line))
+    const SOURCE_KEYWORDS = new Set(
+      'const let var function return if else for while class import export from async await new this try catch throw switch case break continue default typeof instanceof of in null undefined true false interface type extends implements package func struct map range defer select go chan public private protected static void int string bool elif fi then do done esac'.split(' '),
+    )
+
+    function sourceLang(ext) {
+      if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs', 'java', 'go', 'rs', 'c', 'h', 'cpp', 'cc', 'cs', 'kt'].includes(ext)) return 'c'
+      if (['py', 'sh', 'bash', 'zsh', 'yml', 'yaml', 'rb', 'toml'].includes(ext)) return 'hash'
+      if (['css', 'scss', 'less'].includes(ext)) return 'css'
+      if (ext === 'json') return 'json'
+      if (['md', 'markdown'].includes(ext)) return 'md'
+      if (['html', 'htm', 'xml', 'svg', 'vue'].includes(ext)) return 'html'
+      if (ext === 'sql') return 'sql'
+      return ''
+    }
+
+    /** One-line scan: comments, strings, numbers, keywords. No nested languages. */
+    function highlightParts(line, lang) {
+      const text = String(line || '')
+      if (!lang || !text) return [{ text: text || ' ', color: '' }]
+      if (lang === 'md' && /^#{1,6}\s/.test(text)) return [{ text, color: '#79c0ff' }]
+      const parts = []
+      let i = 0
+      const push = (slice, color) => {
+        if (slice) parts.push({ text: slice, color: color || '' })
+      }
+      while (i < text.length) {
+        if ((lang === 'c' || lang === 'css' || lang === 'sql') && text.startsWith('//', i)) {
+          push(text.slice(i), '#8b98a8')
+          break
+        }
+        if (lang === 'hash' && text[i] === '#') {
+          push(text.slice(i), '#8b98a8')
+          break
+        }
+        if ((lang === 'c' || lang === 'css' || lang === 'sql') && text.startsWith('/*', i)) {
+          const end = text.indexOf('*/', i + 2)
+          const stop = end === -1 ? text.length : end + 2
+          push(text.slice(i, stop), '#8b98a8')
+          i = stop
+          continue
+        }
+        if (lang === 'html' && text.startsWith('<!--', i)) {
+          const end = text.indexOf('-->', i + 4)
+          const stop = end === -1 ? text.length : end + 3
+          push(text.slice(i, stop), '#8b98a8')
+          i = stop
+          continue
+        }
+        const quote = text[i]
+        if (quote === '"' || quote === "'" || quote === '`') {
+          let j = i + 1
+          while (j < text.length) {
+            if (text[j] === '\\') { j += 2; continue }
+            if (text[j] === quote) { j += 1; break }
+            j += 1
+          }
+          push(text.slice(i, j), '#a5d6ff')
+          i = j
+          continue
+        }
+        if (/[0-9]/.test(text[i]) && (i === 0 || !/[A-Za-z0-9_]/.test(text[i - 1]))) {
+          let j = i + 1
+          while (j < text.length && /[0-9.xXa-fA-F_]/.test(text[j])) j += 1
+          push(text.slice(i, j), '#79c0ff')
+          i = j
+          continue
+        }
+        if (/[A-Za-z_]/.test(text[i])) {
+          let j = i + 1
+          while (j < text.length && /[A-Za-z0-9_]/.test(text[j])) j += 1
+          const word = text.slice(i, j)
+          const keyword = lang !== 'md' && SOURCE_KEYWORDS.has(word)
+          push(word, keyword ? '#ff8b82' : '')
+          i = j
+          continue
+        }
+        push(text[i], '')
+        i += 1
+      }
+      return parts.length ? parts : [{ text: ' ', color: '' }]
+    }
+
+    function renderHighlighted(line, lang) {
+      return highlightParts(line, lang).map((part, index) => h('span', {
+        key: index,
+        style: part.color ? { color: part.color } : null,
+      }, part.text))
+    }
+
+    /**
+     * New-file line numbers touched by a unified diff.
+     * `added` is a green row; `near` is the line that sits where content was removed.
+     */
+    function parseChangedLines(text) {
+      const added = []
+      const near = []
+      const lines = String(text || '').split('\n')
+      let index = 0
+      while (index < lines.length) {
+        const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(lines[index])
+        if (!hunk) {
+          index += 1
+          continue
+        }
+        let newLine = Number(hunk[1])
+        let pending = false
+        index += 1
+        while (index < lines.length && !lines[index].startsWith('@@') && !lines[index].startsWith('diff ')) {
+          const line = lines[index]
+          if (line.startsWith('+')) {
+            added.push(newLine)
+            newLine += 1
+            pending = false
+          } else if (line.startsWith('-')) {
+            pending = true
+          } else if (line.startsWith('\\')) {
+            /* "\ No newline at end of file" */
+          } else {
+            if (pending) near.push(newLine)
+            pending = false
+            newLine += 1
+          }
+          index += 1
+        }
+        if (pending && newLine > 1) near.push(newLine - 1)
+      }
+      return { added, near }
+    }
+
+    function decorateDiff(text) {
+      const rows = []
+      const lines = String(text || '').split('\n')
+      let newLine = 0
+      let inHunk = false
+      for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index]
+        const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line)
+        if (hunk) {
+          inHunk = true
+          newLine = Number(hunk[1])
+          rows.push({ kind: 'hunk', text: line, marker: '', no: '' })
+          continue
+        }
+        if (!inHunk || line.startsWith('diff ') || line.startsWith('# ')) {
+          if (line.startsWith('diff ') || line.startsWith('# ')) inHunk = false
+          rows.push({ kind: 'meta', text: line, marker: '', no: '' })
+          continue
+        }
+        if (line.startsWith('+')) {
+          rows.push({ kind: 'add', text: line.slice(1), marker: '+', no: String(newLine) })
+          newLine += 1
+        } else if (line.startsWith('-')) {
+          rows.push({ kind: 'del', text: line.slice(1), marker: '-', no: '' })
+        } else if (line.startsWith('\\')) {
+          rows.push({ kind: 'meta', text: line, marker: '', no: '' })
+        } else {
+          rows.push({ kind: 'ctx', text: line.startsWith(' ') ? line.slice(1) : line, marker: '', no: String(newLine) })
+          newLine += 1
+        }
+      }
+      return rows
+    }
+
+    const DIFF_ROW = {
+      add: { background: 'rgba(63, 185, 80, 0.22)', color: '#7ee787', marker: '#7ee787' },
+      del: { background: 'rgba(248, 81, 73, 0.20)', color: '#ff9b94', marker: '#ff9b94' },
+      hunk: { background: 'rgba(88, 166, 255, 0.14)', color: '#9ecbff', marker: '#9ecbff' },
+      ctx: { background: 'transparent', color: CODE_FG, marker: '#7d8794' },
+      meta: { background: 'transparent', color: '#8b98a8', marker: '#7d8794' },
+    }
+
+    function DiffBody({ text, lang }) {
+      const rows = React.useMemo(() => decorateDiff(text), [text])
+      const shown = rows.slice(0, 6000)
+      return h('div', { style: { padding: '8px 0 16px' } },
+        shown.map((row, index) => {
+          const tone = DIFF_ROW[row.kind] || DIFF_ROW.meta
+          const body = row.kind === 'add' || row.kind === 'del' || row.kind === 'ctx'
+            ? renderHighlighted(row.text || ' ', lang)
+            : row.text || ' '
+          return h('div', {
+            key: index,
+            style: { ...styles.codeRow, background: tone.background, color: tone.color },
+          },
+            h('span', { style: { ...styles.lineNo, color: tone.marker } }, `${row.marker} ${row.no}`.trim() || ' '),
+            h('span', { style: { ...styles.codeText, color: tone.color } }, body),
+          )
         }),
-        lines.length > shown.length
-          ? h('div', { style: { ...styles.empty, padding: '8px 12px' } }, `差异较大，只显示前 ${shown.length} 行（共 ${lines.length} 行）。`)
+        rows.length > shown.length
+          ? h('div', { style: { ...styles.empty, padding: '8px 12px', color: '#8b98a8' } }, `差异较大，只显示前 ${shown.length} 行（共 ${rows.length} 行）。`)
           : null,
       )
     }
 
-    function FileBody({ text, truncated, size }) {
+    function FileBody({ text, truncated, size, lang, added, near }) {
       const lines = React.useMemo(() => String(text || '').split('\n'), [text])
+      const addedSet = React.useMemo(() => new Set(added || []), [added])
+      const nearSet = React.useMemo(() => new Set(near || []), [near])
       const shown = lines.slice(0, 6000)
-      return h('div', { style: { padding: '6px 0' } },
-        shown.map((line, index) => h('div', { key: index, style: styles.codeRow },
-          h('span', { style: styles.lineNo }, String(index + 1)),
-          h('span', { style: styles.codeText }, line === '' ? ' ' : line),
-        )),
+      return h('div', { style: { padding: '8px 0 16px' } },
+        shown.map((line, index) => {
+          const lineNo = index + 1
+          const isAdd = addedSet.has(lineNo)
+          const isNear = !isAdd && nearSet.has(lineNo)
+          const background = isAdd ? 'rgba(63, 185, 80, 0.22)' : isNear ? 'rgba(248, 81, 73, 0.18)' : 'transparent'
+          const marker = isAdd ? '+' : isNear ? '·' : ''
+          return h('div', { key: index, style: { ...styles.codeRow, background } },
+            h('span', { style: { ...styles.lineNo, color: isAdd ? '#7ee787' : isNear ? '#ff9b94' : '#7d8794' } }, `${marker} ${lineNo}`.trim()),
+            h('span', { style: styles.codeText }, renderHighlighted(line === '' ? ' ' : line, lang)),
+          )
+        }),
         truncated || lines.length > shown.length
-          ? h('div', { style: { ...styles.empty, padding: '8px 12px' } },
+          ? h('div', { style: { ...styles.empty, padding: '8px 12px', color: '#8b98a8' } },
               `文件较大，只显示前 ${Math.min(shown.length, 6000)} 行${size ? `（共 ${Math.round(size / 1024)} KB）` : ''}。`)
           : null,
       )
+    }
+
+    /** Colour each graph column so a branch reads as its own line. */
+    function graphGlyphs(text) {
+      const glyphs = []
+      const source = String(text || '')
+      for (let index = 0; index < source.length; index += 1) {
+        const ch = source[index]
+        if (ch === ' ' || ch === '\t') {
+          glyphs.push({ ch, color: '', bold: false })
+          continue
+        }
+        const lane = Math.floor(index / 2) % GRAPH_LANE_COLORS.length
+        glyphs.push({ ch, color: GRAPH_LANE_COLORS[lane], bold: ch === '*' })
+      }
+      return glyphs
     }
 
     /**
@@ -1027,6 +1242,18 @@ window.__ModuleLoader__.load({
         window.localStorage.setItem(GIT_BASH_STARTED_KEY, JSON.stringify(Object.fromEntries(kept)))
       } catch {
         /* localStorage may be unavailable; duplicate launch is harmless */
+      }
+    }
+
+    function forgetStartedTerminal(id) {
+      if (!id) return
+      try {
+        const current = readStartedTerminals()
+        if (!current[id]) return
+        delete current[id]
+        window.localStorage.setItem(GIT_BASH_STARTED_KEY, JSON.stringify(current))
+      } catch {
+        /* the next launch will send the command again if this write failed */
       }
     }
 
@@ -1298,6 +1525,7 @@ window.__ModuleLoader__.load({
       const [view, setView] = React.useState(null)
       const viewRef = React.useRef(null)
       const paneRef = React.useRef(null)
+      const bashRetryRef = React.useRef(0)
 
       // One terminal per project: a project switch (or the 新建 button) gets a
       // fresh content identity, so DSH allocates a new PTY instead of re-adopting
@@ -1392,8 +1620,40 @@ window.__ModuleLoader__.load({
       const [phase = '', writableFlag = '0', infoState = '', detail = ''] = statusKey.split('\u001f')
       const writable = writableFlag === '1'
 
+      React.useEffect(() => {
+        bashRetryRef.current = 0
+      }, [repoKey])
+
+      // After DSH restarts, the first view often reattaches a PTY that died with
+      // the previous process. Wait briefly so a terminal that is only passing
+      // through "closed" on its way to "connected" is left alone, then drop the
+      // dead binding once and allocate a new one.
+      React.useEffect(() => {
+        if (phase !== 'failed' && phase !== 'closed') return undefined
+        if (bashRetryRef.current >= 1) return undefined
+        const current = viewRef.current
+        if (!current || !view) return undefined
+        const watched = view
+        const timer = window.setTimeout(() => {
+          if (bashRetryRef.current >= 1) return
+          if (viewRef.current !== current) return
+          const value = watched.state && watched.state.getSnapshot ? watched.state.getSnapshot() : null
+          const still = value && value.phase
+          if (still !== 'failed' && still !== 'closed') return
+          bashRetryRef.current += 1
+          const id = watched.id ? String(watched.id) : ''
+          forgetStartedTerminal(id)
+          bridge.closeView(current.sessionId, current.key, current.contentId)
+          viewRef.current = null
+          setView(null)
+          setEpoch((epochValue) => epochValue + 1)
+        }, 700)
+        return () => window.clearTimeout(timer)
+      }, [phase, view, bridge])
+
       const restart = React.useCallback(() => {
         // New content identity → a real new PTY; the view effect closes the old one.
+        bashRetryRef.current = 0
         setView(null)
         setEpoch((value) => value + 1)
       }, [])
@@ -1405,8 +1665,12 @@ window.__ModuleLoader__.load({
         if (!remembered && gitBash) {
           const launch = buildGitBashLaunch(shellState && shellState.picked ? shellState.picked.path : '', repo, gitBash)
           if (launch) {
-            view.write(launch)
-            if (id) rememberStartedTerminal(id, repo)
+            try {
+              view.write(launch)
+              if (id) rememberStartedTerminal(id, repo)
+            } catch {
+              /* the terminal closed before the shell could take the command */
+            }
           }
         }
         if (!gitBash) return undefined
@@ -1553,8 +1817,30 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function renderChangeFile(entry, padLeft, openDiffTab) {
+      const tone = colorForStatus(entry.xy)
+      const deleted = isDeleted(entry)
+      return h('div', {
+        key: 'file:' + entry.path,
+        className: 'dsh-git-hit',
+        style: { ...styles.fileRow, paddingLeft: padLeft },
+        onClick: () => openDiffTab(entry),
+        title: `${statusLabel(entry.xy)}\n${entry.path}`,
+      },
+        h('span', { style: { ...styles.xy, color: tone } }, displayXY(entry)),
+        h('span', {
+          style: {
+            ...styles.fileName,
+            color: tone,
+            textDecoration: deleted ? 'line-through' : 'none',
+          },
+        }, baseName(entry.path)),
+        h('span', { style: { ...styles.count, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 400 } }, entry.path.includes('/') ? entry.path.slice(0, entry.path.lastIndexOf('/')) : ''),
+      )
+    }
+
     function renderChangeList({
-      files, tree, collapsed, toggleDir, openDiffTab,
+      files, tree, collapsed, toggleDir, openDiffTab, treeMode, onTreeMode,
       stagedCount, unstagedCount, untrackedCount, moduleNames,
     }) {
       const rows = []
@@ -1579,32 +1865,33 @@ window.__ModuleLoader__.load({
           if (!isCollapsed) renderNode(dir, depth + 1)
         }
         for (const entry of node.files) {
-          const tone = colorForStatus(entry.xy)
-          const deleted = isDeleted(entry)
-          rows.push(h('div', {
-            key: 'file:' + entry.path,
-            className: 'dsh-git-hit',
-            style: { ...styles.fileRow, paddingLeft: 8 + depth * 14 + 12 },
-            onClick: () => openDiffTab(entry),
-            title: `${statusLabel(entry.xy)}\n${entry.path}`,
-          },
-            h('span', { style: { ...styles.xy, color: tone } }, displayXY(entry)),
-            h('span', {
-              style: {
-                ...styles.fileName,
-                color: tone,
-                textDecoration: deleted ? 'line-through' : 'none',
-              },
-            }, baseName(entry.path)),
-            h('span', { style: { ...styles.count, maxWidth: 104, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 400 } }, entry.path.includes('/') ? entry.path.slice(0, entry.path.lastIndexOf('/')) : ''),
-          ))
+          rows.push(renderChangeFile(entry, 8 + depth * 14 + 12, openDiffTab))
         }
       }
-      renderNode(tree, 0)
+      if (treeMode === 'files') {
+        const flat = files.slice().sort((a, b) => String(a.path).localeCompare(String(b.path), 'zh-Hans-CN'))
+        for (const entry of flat) rows.push(renderChangeFile(entry, 12, openDiffTab))
+      } else {
+        renderNode(tree, 0)
+      }
+      const modeButton = (mode, label) => h('button', {
+        key: mode,
+        style: {
+          ...styles.buttonQuiet,
+          ...(treeMode === mode ? { background: 'var(--dsw-alias-bg-layer-2)', color: 'var(--dsw-alias-label-primary)' } : {}),
+        },
+        onClick: () => onTreeMode(mode),
+      }, label)
       return h('div', null,
         h('div', { style: styles.treeSummary },
           h('div', null, `${files.length} 个文件有未提交改动 · 已暂存 ${stagedCount} · 未暂存 ${unstagedCount} · 未跟踪 ${untrackedCount}`),
-          h('div', null, moduleNames.length ? `${moduleNames.length} 个模块：${moduleNames.slice(0, 6).join('、')}${moduleNames.length > 6 ? '…' : ''}` : ''),
+          treeMode === 'modules'
+            ? h('div', null, moduleNames.length ? `${moduleNames.length} 个模块：${moduleNames.slice(0, 6).join('、')}${moduleNames.length > 6 ? '…' : ''}` : '')
+            : h('div', null, '只列出文件，不按模块折叠。'),
+          h('div', { style: { display: 'flex', gap: 6, marginTop: 6 } },
+            modeButton('modules', '按模块'),
+            modeButton('files', '只显示文件'),
+          ),
           statusLegend(),
           h('div', { style: { marginTop: 4 } },
             stagedCount > 0
@@ -1779,6 +2066,11 @@ window.__ModuleLoader__.load({
       const [branchMenuOpen, setBranchMenuOpen] = React.useState(false)
       const [branchBusy, setBranchBusy] = React.useState('')
       const [branchError, setBranchError] = React.useState('')
+      const [branchDraft, setBranchDraft] = React.useState('')
+      const [renameDraft, setRenameDraft] = React.useState('')
+      const [syncBusy, setSyncBusy] = React.useState('')
+      const [treeMode, setTreeMode] = React.useState(() => (stored.treeMode === 'files' ? 'files' : 'modules'))
+      const [changedMarks, setChangedMarks] = React.useState({ added: [], near: [] })
       const [notice, setNotice] = React.useState('')
       const [sidebarWidth, setSidebarWidth] = React.useState(() => {
         const width = Number(stored.sidebarWidth)
@@ -2130,6 +2422,82 @@ window.__ModuleLoader__.load({
         }
       }, [repo, branchBusy, call, flash, refresh, loadRepos, resetDirectories])
 
+      const chooseTreeMode = React.useCallback((mode) => {
+        const next = mode === 'files' ? 'files' : 'modules'
+        setTreeMode(next)
+        writeStore({ treeMode: next })
+      }, [])
+
+      const hostActionError = (failure, fallback) => {
+        const raw = String((failure && failure.message) || failure)
+        return /未知操作/.test(raw) ? fallback : raw
+      }
+
+      const createBranch = React.useCallback(async () => {
+        const name = branchDraft.trim()
+        if (!repo || !name || branchBusy) return
+        setBranchBusy(name)
+        setBranchError('')
+        try {
+          await call('branchCreate', { branch: name })
+          setBranchDraft('')
+          setBranchMenuOpen(false)
+          setOpenTabs([])
+          setActiveTabId('')
+          setDetail('')
+          setAllFiles(null)
+          setExpandedDirs(new Set())
+          resetDirectories()
+          flash(`已新建并切换到分支 ${name}`)
+          await refresh(false)
+          loadRepos(true)
+        } catch (failure) {
+          setBranchError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能新建分支。'))
+        } finally {
+          setBranchBusy('')
+        }
+      }, [repo, branchDraft, branchBusy, call, flash, refresh, loadRepos, resetDirectories])
+
+      const renameBranch = React.useCallback(async () => {
+        const name = renameDraft.trim()
+        if (!repo || !name || branchBusy) return
+        setBranchBusy(name)
+        setBranchError('')
+        try {
+          const result = await call('branchRename', { branch: name })
+          setRenameDraft('')
+          setBranchMenuOpen(false)
+          flash(result && result.unchanged ? `分支名已经是 ${name}` : `已把分支改名为 ${name}`)
+          await refresh(false)
+          loadRepos(true)
+        } catch (failure) {
+          setBranchError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能修改分支名。'))
+        } finally {
+          setBranchBusy('')
+        }
+      }, [repo, renameDraft, branchBusy, call, flash, refresh, loadRepos])
+
+      const syncBranch = React.useCallback(async (action) => {
+        if (!repo || syncBusy || branchBusy) return
+        setSyncBusy(action)
+        setBranchError('')
+        try {
+          await call(action)
+          flash(action === 'pull' ? '已拉取（只快进）' : '已推送')
+          await refresh(false)
+          loadRepos(true)
+        } catch (failure) {
+          setBranchError(hostActionError(
+            failure,
+            action === 'pull'
+              ? '宿主半边还是旧版本，重启 DSH 之后才能拉取。'
+              : '宿主半边还是旧版本，重启 DSH 之后才能推送。',
+          ))
+        } finally {
+          setSyncBusy('')
+        }
+      }, [repo, syncBusy, branchBusy, call, flash, refresh, loadRepos])
+
       const openLocation = async (target) => {
         try {
           await call('reveal', { repo: target }, '')
@@ -2205,6 +2573,16 @@ window.__ModuleLoader__.load({
             if (!alive) return
             setDetail(payload.binary ? '' : String(payload.text || ''))
             setDetailMeta({ truncated: !!payload.truncated, size: Number(payload.size) || 0, binary: !!payload.binary })
+            if (activeTab.kind === 'file' && !payload.binary) {
+              try {
+                const diffPayload = await call('diff', { path: activeTab.path, scope: 'all' })
+                if (alive) setChangedMarks(parseChangedLines(diffPayload && diffPayload.text))
+              } catch {
+                if (alive) setChangedMarks({ added: [], near: [] })
+              }
+            } else if (alive) {
+              setChangedMarks({ added: [], near: [] })
+            }
             if (payload.binary) setDetailError('这个文件是二进制内容，无法以文本预览。')
             else if (payload.truncated) setDetailError('文件较大，只显示前 200 KB。')
           } catch (failure) {
@@ -2425,7 +2803,7 @@ window.__ModuleLoader__.load({
           listContent = h('div', { style: styles.empty }, '工作区干净：没有未暂存、已暂存或未跟踪的改动，没有需要提交的内容。')
         } else {
           listContent = renderChangeList({
-            files, tree, collapsed, toggleDir, openDiffTab,
+            files, tree, collapsed, toggleDir, openDiffTab, treeMode, onTreeMode: chooseTreeMode,
             stagedCount, unstagedCount, untrackedCount, moduleNames,
           })
         }
@@ -2456,7 +2834,12 @@ window.__ModuleLoader__.load({
                 style: styles.graphRow,
                 onClick: line.sha ? () => openCommitTab({ sha: line.sha, short: line.sha.slice(0, 7), subject: line.text }) : undefined,
               },
-                h('span', { style: { color: 'var(--dsw-alias-brand-primary)' } }, line.graph),
+                h('span', null,
+                  graphGlyphs(line.graph).map((glyph, glyphIndex) => h('span', {
+                    key: glyphIndex,
+                    style: glyph.color ? { color: glyph.color, fontWeight: glyph.bold ? 700 : 500 } : null,
+                  }, glyph.ch)),
+                ),
                 h('span', null, line.text),
               ))
             : h('div', { style: styles.empty }, '没有提交记录。')
@@ -2709,10 +3092,51 @@ window.__ModuleLoader__.load({
                     : h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.current ? '当前' : '点击切换'),
                   h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
                 )),
-            h('div', { style: { ...styles.popHead, borderTop: '1px solid var(--dsw-alias-border-l1)', marginTop: 4 } },
-              '用本机 git 切换分支，不会新开分支。'),
+            h('div', { style: styles.divider }),
+            h('div', { style: styles.popHead }, '新建分支（从当前提交）'),
+            h('div', { style: { display: 'flex', gap: 6, padding: '2px 0' } },
+              h('input', {
+                style: styles.input,
+                value: branchDraft,
+                spellCheck: false,
+                placeholder: 'feature/name',
+                onChange: (event) => setBranchDraft(event.target.value),
+                onKeyDown: (event) => { if (event.key === 'Enter') createBranch() },
+              }),
+              h('button', { style: styles.button, disabled: !branchDraft.trim() || !!branchBusy, onClick: createBranch }, branchBusy && branchBusy === branchDraft.trim() ? '创建中…' : '新建'),
+            ),
+            h('div', { style: styles.popHead }, '修改当前分支的名称'),
+            h('div', { style: { display: 'flex', gap: 6, padding: '2px 0' } },
+              h('input', {
+                style: styles.input,
+                value: renameDraft,
+                spellCheck: false,
+                placeholder: status && status.branch ? status.branch : '新的分支名',
+                onChange: (event) => setRenameDraft(event.target.value),
+                onKeyDown: (event) => { if (event.key === 'Enter') renameBranch() },
+              }),
+              h('button', { style: styles.button, disabled: !renameDraft.trim() || !!branchBusy, onClick: renameBranch }, branchBusy && branchBusy === renameDraft.trim() ? '改名中…' : '改名'),
+            ),
+            branchError
+              ? h('div', { style: { padding: '4px 8px', fontSize: 12, color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'normal' } }, branchError)
+              : null,
           ),
         ) : null,
+      )
+
+      const syncButtons = h(React.Fragment, null,
+        h('button', {
+          style: styles.button,
+          disabled: !repo || !!syncBusy || !!branchBusy,
+          title: 'git pull --ff-only。不能快进时会显示 git 的原因，不会自动合并。',
+          onClick: () => syncBranch('pull'),
+        }, syncBusy === 'pull' ? '拉取中…' : `拉取${status && status.behind ? ' ↓' + status.behind : ''}`),
+        h('button', {
+          style: styles.button,
+          disabled: !repo || !!syncBusy || !!branchBusy,
+          title: 'git push。没有上游时推送到 origin 并设置上游。不会使用 --force。',
+          onClick: () => syncBranch('push'),
+        }, syncBusy === 'push' ? '推送中…' : `推送${status && status.ahead ? ' ↑' + status.ahead : ''}`),
       )
 
       const refreshButton = h('button', {
@@ -2789,6 +3213,7 @@ window.__ModuleLoader__.load({
       const tabsBar = h('div', { style: styles.tabStrip },
         repoButton,
         branchChip,
+        syncButtons,
         refreshButton,
         h('button', {
           style: {
@@ -2881,9 +3306,17 @@ window.__ModuleLoader__.load({
       } else if (detailBusy && !detail) {
         contentBody = h('div', { style: styles.empty }, '读取中…')
       } else {
+        const codeLang = sourceLang(extensionOf(activeTab.path || ''))
         contentBody = activeTab.kind === 'file'
-          ? h(FileBody, { text: detail, truncated: detailMeta.truncated, size: detailMeta.size })
-          : h(DiffBody, { text: detail })
+          ? h(FileBody, {
+              text: detail,
+              truncated: detailMeta.truncated,
+              size: detailMeta.size,
+              lang: codeLang,
+              added: changedMarks.added,
+              near: changedMarks.near,
+            })
+          : h(DiffBody, { text: detail, lang: activeTab.kind === 'diff' ? codeLang : '' })
       }
 
       const sidebarSplitter = h(PaneSplitter, {
@@ -2950,7 +3383,7 @@ window.__ModuleLoader__.load({
           sidebarSplitter,
           h('div', { style: { ...styles.card, ...styles.main } },
             contentHead,
-            h('div', { style: styles.scroll }, contentBody),
+            h('div', { style: { ...styles.scroll, ...(detail && activeTab ? styles.codeSurface : {}) } }, contentBody),
           ),
           terminalSplitter,
           terminalPane,
