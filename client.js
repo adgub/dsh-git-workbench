@@ -75,28 +75,37 @@ window.__ModuleLoader__.load({
         position: 'relative',
       },
       button: {
-        padding: '4px 10px',
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '6px 12px',
         fontSize: 12,
+        fontWeight: 600,
         cursor: 'pointer',
         color: 'var(--dsw-alias-label-primary)',
         background: 'var(--dsw-alias-bg-layer-1)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        borderRadius: 6,
+        borderRadius: 4,
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.16)',
         whiteSpace: 'nowrap',
       },
       buttonQuiet: {
-        padding: '3px 7px',
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '6px 12px',
         fontSize: 12,
+        fontWeight: 600,
         cursor: 'pointer',
-        color: 'var(--dsw-alias-label-secondary)',
-        background: 'transparent',
-        border: '1px solid transparent',
-        borderRadius: 6,
+        color: 'var(--dsw-alias-label-primary)',
+        background: 'var(--dsw-alias-bg-layer-1)',
+        border: '1px solid var(--dsw-alias-border-l1)',
+        borderRadius: 4,
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.16)',
+        whiteSpace: 'nowrap',
       },
       banner: {
-        margin: '6px 10px',
-        padding: '5px 8px',
-        borderRadius: 6,
+        margin: '8px 10px',
+        padding: '4px 8px',
+        borderRadius: 4,
         fontSize: 12,
         color: 'var(--dsw-alias-state-error-primary)',
         border: '1px solid var(--dsw-alias-state-error-primary)',
@@ -105,15 +114,15 @@ window.__ModuleLoader__.load({
         display: 'flex',
         flex: '1 1 auto',
         minHeight: 0,
-        padding: 8,
+        padding: 0,
         background: 'var(--dsw-alias-bg-base)',
       },
       card: {
         boxSizing: 'border-box',
         background: 'var(--dsw-alias-bg-layer-1)',
-        border: '1px solid var(--dsw-alias-border-l1)',
-        borderRadius: 10,
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.22), 0 10px 26px rgba(0, 0, 0, 0.10)',
+        border: 'none',
+        borderRight: '1px solid var(--dsw-alias-border-l1)',
+        borderRadius: 0,
         overflow: 'hidden',
       },
       sidebar: {
@@ -135,7 +144,7 @@ window.__ModuleLoader__.load({
         zIndex: 2,
         outline: 'none',
       },
-      splitterLine: { width: 1, background: 'rgba(127, 127, 127, 0.18)', borderRadius: 1 },
+      splitterLine: { width: 1, background: 'transparent' },
       splitterGrip: {
         position: 'absolute',
         top: '50%',
@@ -149,37 +158,41 @@ window.__ModuleLoader__.load({
       },
       tabs: {
         display: 'flex',
-        gap: 4,
-        padding: '7px 8px',
+        gap: 0,
+        padding: '0 8px',
         borderBottom: '1px solid var(--dsw-alias-border-l1)',
-        background: 'var(--dsw-alias-bg-layer-1)',
+        background: 'var(--dsw-alias-bg-layer-2)',
         flex: '0 0 auto',
         overflowX: 'auto',
       },
       tab: {
-        padding: '4px 10px',
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '8px 12px',
         fontSize: 12,
-        fontWeight: 600,
+        fontWeight: 400,
         cursor: 'pointer',
-        borderRadius: 999,
+        borderRadius: 0,
         border: 'none',
+        borderBottomWidth: 2,
+        borderBottomStyle: 'solid',
+        borderBottomColor: 'transparent',
         background: 'transparent',
         color: 'var(--dsw-alias-label-secondary)',
         whiteSpace: 'nowrap',
       },
       tabActive: {
-        background: 'var(--dsw-alias-bg-layer-2)',
+        background: 'var(--dsw-alias-bg-layer-1)',
         color: 'var(--dsw-alias-label-primary)',
-        boxShadow: 'inset 0 0 0 1px var(--dsw-alias-border-l1)',
+        fontWeight: 600,
       },
       list: { flex: '1 1 auto', overflow: 'auto', minHeight: 0, background: 'var(--dsw-alias-bg-layer-1)' },
       sectionHead: {
         display: 'flex',
         alignItems: 'baseline',
         gap: 8,
-        padding: '6px 10px',
-        fontSize: 11,
-        letterSpacing: 0.4,
+        padding: '8px 10px',
+        fontSize: 12,
         color: 'var(--dsw-alias-label-secondary)',
         background: 'var(--dsw-alias-bg-layer-1)',
         borderBottom: '1px solid var(--dsw-alias-border-l1)',
@@ -197,19 +210,18 @@ window.__ModuleLoader__.load({
         minHeight: 0,
         background: TERMINAL_BACKGROUND,
         color: TERMINAL_FOREGROUND,
-        border: '1px solid #262626',
-        borderRadius: 10,
+        border: 'none',
+        borderRadius: 0,
         overflow: 'hidden',
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px rgba(0, 0, 0, 0.28)',
       },
       terminalHead: {
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
+        gap: 8,
         flex: '0 0 auto',
-        minHeight: 32,
-        padding: '5px 8px',
-        fontSize: 11,
+        minHeight: 40,
+        padding: '4px 8px',
+        fontSize: 12,
         color: '#9e9e9e',
         background: '#141414',
         borderBottom: '1px solid #2a2a2a',
@@ -225,14 +237,18 @@ window.__ModuleLoader__.load({
         fontSize: 12,
       },
       terminalDarkButton: {
-        padding: '2px 8px',
-        fontSize: 11,
+        boxSizing: 'border-box',
+        minHeight: 32,
+        minWidth: 32,
+        padding: '6px 12px',
+        fontSize: 12,
         fontWeight: 600,
         cursor: 'pointer',
         color: '#cfcfcf',
         background: '#1f1f1f',
-        border: '1px solid #333333',
-        borderRadius: 5,
+        border: '1px solid #4a4a4a',
+        borderRadius: 4,
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.4)',
         whiteSpace: 'nowrap',
       },
       terminalBody: {
@@ -261,98 +277,105 @@ window.__ModuleLoader__.load({
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: '7px 10px',
+        padding: '8px 10px',
         borderBottom: '1px solid var(--dsw-alias-border-l1)',
         flex: '0 0 auto',
         position: 'relative',
-        minHeight: 46,
-        background: 'var(--dsw-alias-bg-base)',
+        minHeight: 48,
+        background: 'var(--dsw-alias-bg-layer-2)',
         zIndex: 3,
       },
       repoButton: {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
-        padding: '4px 8px',
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '6px 12px',
         fontSize: 13,
-        fontWeight: 700,
+        fontWeight: 600,
         cursor: 'pointer',
         color: 'var(--dsw-alias-label-primary)',
-        background: 'var(--dsw-alias-bg-layer-1)',
-        border: '1px solid var(--dsw-alias-border-l1)',
-        borderRadius: 6,
+        background: 'transparent',
+        border: 'none',
+        borderBottomWidth: 2,
+        borderBottomStyle: 'solid',
+        borderBottomColor: 'transparent',
+        borderRadius: 0,
         whiteSpace: 'nowrap',
         maxWidth: 260,
       },
-      repoName: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 },
+      repoName: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 },
       tabScroll: { display: 'flex', alignItems: 'center', gap: 4, flex: '1 1 auto', minWidth: 0, overflowX: 'auto' },
       fileTab: {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
-        padding: '4px 7px 4px 5px',
-        fontSize: 12.5,
-        fontWeight: 600,
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '4px 8px',
+        fontSize: 12,
+        fontWeight: 400,
         cursor: 'pointer',
         color: 'var(--dsw-alias-label-secondary)',
         background: 'transparent',
-        border: '1px solid transparent',
+        border: 'none',
         borderBottomWidth: 2,
-        borderRadius: 6,
+        borderBottomStyle: 'solid',
+        borderBottomColor: 'transparent',
+        borderRadius: 0,
         whiteSpace: 'nowrap',
         maxWidth: 220,
         flex: '0 0 auto',
       },
       fileTabActive: {
         color: 'var(--dsw-alias-label-primary)',
-        background: 'var(--dsw-alias-bg-layer-2)',
-        border: '1px solid var(--dsw-alias-border-l1)',
-        borderBottomWidth: 2,
+        fontWeight: 600,
+        background: 'var(--dsw-alias-bg-layer-1)',
       },
       tabBadge: {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
+        flex: '0 0 auto',
         minWidth: 18,
-        height: 16,
-        padding: '0 3px',
-        borderRadius: 3,
-        fontSize: 9,
-        fontWeight: 700,
+        fontSize: 12,
+        fontWeight: 600,
         fontFamily: monospace,
-        background: 'var(--dsw-alias-bg-layer-1)',
-        border: '1px solid var(--dsw-alias-border-l1)',
       },
       tabName: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
       tabClose: {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 15,
-        height: 15,
-        borderRadius: 3,
-        fontSize: 12,
+        boxSizing: 'border-box',
+        width: 28,
+        height: 28,
+        borderRadius: 4,
+        border: '1px solid var(--dsw-alias-border-l1)',
+        background: 'var(--dsw-alias-bg-layer-1)',
+        fontSize: 14,
         lineHeight: 1,
-        color: 'var(--dsw-alias-label-secondary)',
+        color: 'var(--dsw-alias-label-primary)',
       },
       pathBar: {
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
         flex: '0 0 auto',
-        padding: '5px 12px',
-        fontSize: 11,
+        padding: '4px 10px',
+        fontSize: 12,
         fontFamily: monospace,
         color: 'var(--dsw-alias-label-secondary)',
         borderBottom: '1px solid var(--dsw-alias-border-l1)',
         minHeight: 28,
-        background: 'var(--dsw-alias-bg-base)',
+        background: 'var(--dsw-alias-bg-layer-2)',
       },
       pathText: { flex: '0 1 auto', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 },
       pathSummary: {
         flex: '0 0 auto',
         marginLeft: 'auto',
-        fontSize: 11,
+        fontSize: 12,
         fontFamily: 'inherit',
         color: 'var(--dsw-alias-label-secondary)',
         whiteSpace: 'nowrap',
@@ -360,28 +383,30 @@ window.__ModuleLoader__.load({
       contentHead: {
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '6px 10px',
+        gap: 8,
+        padding: '8px 10px',
         borderBottom: '1px solid var(--dsw-alias-border-l1)',
-        fontSize: 11,
+        fontSize: 12,
         color: 'var(--dsw-alias-label-secondary)',
         flex: '0 0 auto',
-        minHeight: 34,
-        background: 'var(--dsw-alias-bg-layer-1)',
+        minHeight: 48,
+        background: 'var(--dsw-alias-bg-layer-2)',
       },
-      segment: { display: 'inline-flex', gap: 2, background: 'var(--dsw-alias-bg-base)', borderRadius: 7, padding: 2, border: '1px solid var(--dsw-alias-border-l1)' },
+      segment: { display: 'inline-flex', gap: 0, background: 'transparent', borderRadius: 4, padding: 0, border: '1px solid var(--dsw-alias-border-l1)' },
       segmentItem: {
-        padding: '2px 9px',
-        fontSize: 11,
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '6px 12px',
+        fontSize: 12,
         fontWeight: 600,
         cursor: 'pointer',
         border: 'none',
-        borderRadius: 5,
+        borderRadius: 0,
         background: 'transparent',
         color: 'var(--dsw-alias-label-secondary)',
       },
-      segmentActive: { background: 'var(--dsw-alias-bg-layer-2)', color: 'var(--dsw-alias-label-primary)' },
-      scroll: { flex: '1 1 auto', overflow: 'auto', minHeight: 0, fontFamily: monospace, fontSize: 12, lineHeight: 1.55 },
+      segmentActive: { background: 'var(--dsw-alias-bg-layer-1)', color: 'var(--dsw-alias-label-primary)', fontWeight: 600 },
+      scroll: { flex: '1 1 auto', overflow: 'auto', minHeight: 0, background: 'var(--dsw-alias-bg-layer-1)', fontFamily: monospace, fontSize: 12, lineHeight: 1.55 },
       codeRow: { display: 'flex', whiteSpace: 'pre' },
       lineNo: {
         flex: '0 0 auto',
@@ -389,11 +414,10 @@ window.__ModuleLoader__.load({
         padding: '0 8px 0 0',
         textAlign: 'right',
         color: 'var(--dsw-alias-label-secondary)',
-        opacity: 0.65,
         userSelect: 'none',
       },
       codeText: { flex: '1 1 auto', paddingRight: 14 },
-      empty: { padding: 20, color: 'var(--dsw-alias-label-secondary)', fontSize: 12, lineHeight: 1.9 },
+      empty: { padding: 16, color: 'var(--dsw-alias-label-secondary)', fontSize: 12, lineHeight: 1.5 },
       overlay: { position: 'fixed', inset: 0, zIndex: 30, background: 'transparent' },
       popover: {
         position: 'absolute',
@@ -401,44 +425,43 @@ window.__ModuleLoader__.load({
         width: 430,
         maxHeight: 460,
         overflow: 'auto',
-        padding: 8,
-        borderRadius: 10,
+        padding: 6,
+        borderRadius: 6,
         background: 'var(--dsw-alias-bg-layer-2)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        boxShadow: '0 14px 36px rgba(0, 0, 0, 0.28)',
+        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.18)',
       },
       input: {
         width: '100%',
         boxSizing: 'border-box',
-        padding: '5px 8px',
+        padding: '4px 8px',
         fontSize: 12,
         fontFamily: monospace,
         color: 'var(--dsw-alias-label-primary)',
         background: 'var(--dsw-alias-bg-layer-1)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        borderRadius: 6,
+        borderRadius: 4,
       },
-      popHead: { padding: '4px 6px', fontSize: 11, color: 'var(--dsw-alias-label-secondary)', letterSpacing: 0.3 },
-      repoRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 6, cursor: 'pointer' },
+      popHead: { padding: '4px 8px', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' },
+      repoRow: { display: 'flex', alignItems: 'center', gap: 8, boxSizing: 'border-box', minHeight: 32, padding: '8px 10px', borderRadius: 0, borderBottom: '1px solid var(--dsw-alias-border-l1)', cursor: 'pointer' },
       repoRowActive: { background: 'var(--dsw-alias-bg-layer-1)' },
       repoRowMain: { flex: '1 1 auto', minWidth: 0 },
-      repoRowName: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 700, lineHeight: 1.35 },
+      repoRowName: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, lineHeight: 1.4 },
       repoNameText: {
-        fontSize: 13.5,
-        fontWeight: 700,
+        fontSize: 13,
+        fontWeight: 600,
         color: 'var(--dsw-alias-label-primary)',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
       },
-      repoMeta: { fontSize: 10, fontWeight: 400, fontFamily: monospace, color: 'var(--dsw-alias-label-secondary)' },
+      repoMeta: { fontSize: 12, fontWeight: 400, fontFamily: monospace, color: 'var(--dsw-alias-label-secondary)' },
       repoRowPath: {
         marginTop: 2,
-        fontSize: 10.5,
+        fontSize: 12,
         fontWeight: 400,
         fontFamily: monospace,
         color: 'var(--dsw-alias-label-secondary)',
-        opacity: 0.72,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
@@ -448,27 +471,31 @@ window.__ModuleLoader__.load({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 26,
-        height: 26,
+        width: 28,
+        height: 28,
         padding: 0,
         cursor: 'pointer',
-        color: 'var(--dsw-alias-label-secondary)',
-        background: 'transparent',
-        border: '1px solid transparent',
-        borderRadius: 5,
+        color: 'var(--dsw-alias-label-primary)',
+        background: 'var(--dsw-alias-bg-layer-1)',
+        border: '1px solid var(--dsw-alias-border-l1)',
+        borderRadius: 4,
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.16)',
       },
       branchButton: {
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 5,
-        padding: '4px 8px',
+        gap: 4,
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '6px 12px',
         fontSize: 12,
         fontWeight: 600,
         cursor: 'pointer',
         color: 'var(--dsw-alias-label-primary)',
-        background: 'transparent',
+        background: 'var(--dsw-alias-bg-layer-1)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        borderRadius: 6,
+        borderRadius: 4,
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.16)',
         whiteSpace: 'nowrap',
         maxWidth: 230,
       },
@@ -480,72 +507,73 @@ window.__ModuleLoader__.load({
         width: 320,
         maxHeight: 430,
         overflow: 'auto',
-        padding: 8,
-        borderRadius: 10,
+        padding: 6,
+        borderRadius: 6,
         background: 'var(--dsw-alias-bg-layer-2)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        boxShadow: '0 14px 36px rgba(0, 0, 0, 0.28)',
+        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.18)',
       },
       divider: { height: 1, margin: '6px 2px', background: 'var(--dsw-alias-border-l1)' },
-      treeRow: { display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'pointer', lineHeight: 1.5 },
+      treeRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', cursor: 'pointer', lineHeight: 1.5 },
       moduleRow: {
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        margin: '8px 8px 4px',
-        padding: '7px 9px',
+        gap: 8,
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '8px 10px',
         cursor: 'pointer',
-        lineHeight: 1.35,
-        background: 'var(--dsw-alias-bg-layer-2)',
-        border: '1px solid var(--dsw-alias-border-l1)',
-        borderRadius: 8,
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.20)',
+        lineHeight: 1.4,
+        fontWeight: 600,
+        borderBottom: '1px solid var(--dsw-alias-border-l1)',
       },
       dirRow: {
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '5px 8px',
+        gap: 8,
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '8px 10px',
         cursor: 'pointer',
         lineHeight: 1.5,
-        margin: '0 8px',
-        borderBottom: '1px solid rgba(127, 127, 127, 0.12)',
+        borderBottom: '1px solid var(--dsw-alias-border-l1)',
       },
       fileRow: {
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '5px 8px',
+        gap: 8,
+        boxSizing: 'border-box',
+        minHeight: 32,
+        padding: '8px 10px',
         cursor: 'pointer',
         lineHeight: 1.5,
-        margin: '0 8px',
-        borderBottom: '1px solid rgba(127, 127, 127, 0.08)',
+        borderBottom: '1px solid var(--dsw-alias-border-l1)',
       },
-      treeRowHover: { background: 'var(--dsw-alias-bg-layer-1)' },
-      caret: { width: 13, flex: '0 0 auto', fontSize: 10, color: 'var(--dsw-alias-label-secondary)' },
-      dirName: { flex: '1 1 auto', fontSize: 13.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-      count: { flex: '0 0 auto', fontSize: 11, fontWeight: 600, color: 'var(--dsw-alias-label-secondary)', fontFamily: monospace },
+      treeRowHover: { background: 'var(--dsw-alias-bg-layer-2)' },
+      caret: { width: 12, flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' },
+      dirName: { flex: '1 1 auto', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+      count: { flex: '0 0 auto', fontSize: 12, fontWeight: 400, color: 'var(--dsw-alias-label-secondary)', fontFamily: monospace },
       dots: { display: 'inline-flex', gap: 3, flex: '0 0 auto', width: 28, justifyContent: 'flex-end' },
       dot: { width: 6, height: 6, borderRadius: 999, display: 'inline-block' },
-      fileName: { flex: '1 1 auto', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-      xy: { flex: '0 0 auto', width: 24, fontSize: 11, fontFamily: monospace, fontWeight: 700 },
+      fileName: { flex: '1 1 auto', fontSize: 13, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+      xy: { flex: '0 0 auto', width: 24, fontSize: 12, fontFamily: monospace, fontWeight: 600 },
       legend: {
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
-        gap: '2px 8px',
+        gap: '4px 8px',
         marginTop: 4,
-        fontSize: 10,
+        fontSize: 12,
         color: 'var(--dsw-alias-label-secondary)',
       },
       legendItem: { display: 'inline-flex', alignItems: 'center', gap: 3 },
       legendDot: { width: 6, height: 6, borderRadius: 999, display: 'inline-block', flex: '0 0 auto' },
       treeSummary: {
-        padding: '9px 12px',
+        padding: '8px 10px',
         borderBottom: '1px solid var(--dsw-alias-border-l1)',
         background: 'var(--dsw-alias-bg-layer-1)',
-        fontSize: 11,
-        lineHeight: 1.7,
+        fontSize: 12,
+        lineHeight: 1.5,
         color: 'var(--dsw-alias-label-secondary)',
       },
       graphRow: {
@@ -557,9 +585,9 @@ window.__ModuleLoader__.load({
         lineHeight: 1.5,
         whiteSpace: 'pre',
       },
-      logRow: { display: 'flex', gap: 8, padding: '5px 10px', cursor: 'pointer' },
-      branchRow: { display: 'flex', gap: 8, padding: '5px 10px' },
-      pickerRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '5px 7px', borderRadius: 6, cursor: 'pointer' },
+      logRow: { display: 'flex', alignItems: 'center', gap: 8, boxSizing: 'border-box', minHeight: 32, padding: '8px 10px', borderBottom: '1px solid var(--dsw-alias-border-l1)', cursor: 'pointer' },
+      branchRow: { display: 'flex', alignItems: 'center', gap: 8, boxSizing: 'border-box', minHeight: 32, padding: '8px 10px', borderBottom: '1px solid var(--dsw-alias-border-l1)' },
+      pickerRow: { display: 'flex', alignItems: 'center', gap: 8, boxSizing: 'border-box', minHeight: 32, padding: '8px 10px', borderRadius: 0, borderBottom: '1px solid var(--dsw-alias-border-l1)', cursor: 'pointer' },
       searchWrap: { position: 'relative', display: 'flex', alignItems: 'center', flex: '0 1 240px', minWidth: 120 },
       searchIcon: {
         position: 'absolute',
@@ -572,31 +600,32 @@ window.__ModuleLoader__.load({
       searchInput: {
         width: '100%',
         boxSizing: 'border-box',
-        padding: '5px 8px 5px 23px',
+        minHeight: 32,
+        padding: '6px 8px 6px 28px',
         fontSize: 12,
         fontFamily: 'inherit',
         color: 'var(--dsw-alias-label-primary)',
         background: 'var(--dsw-alias-bg-layer-1)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        borderRadius: 6,
+        borderRadius: 4,
         outline: 'none',
       },
       searchPop: {
         position: 'absolute',
-        top: 'calc(100% + 7px)',
+        top: 'calc(100% + 4px)',
         left: 0,
         zIndex: 31,
         width: 440,
         maxWidth: 'calc(100vw - 24px)',
         maxHeight: 420,
         overflow: 'auto',
-        padding: 8,
-        borderRadius: 10,
+        padding: 6,
+        borderRadius: 6,
         background: 'var(--dsw-alias-bg-layer-2)',
         border: '1px solid var(--dsw-alias-border-l1)',
-        boxShadow: '0 14px 36px rgba(0, 0, 0, 0.28)',
+        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.18)',
       },
-      resultRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '5px 7px', borderRadius: 6, cursor: 'pointer' },
+      resultRow: { display: 'flex', alignItems: 'center', gap: 8, boxSizing: 'border-box', minHeight: 32, padding: '8px 10px', borderRadius: 0, borderBottom: '1px solid var(--dsw-alias-border-l1)', cursor: 'pointer' },
       resultActive: { background: 'var(--dsw-alias-bg-layer-1)' },
       colorDot: {
         width: 11,
@@ -610,18 +639,21 @@ window.__ModuleLoader__.load({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 3,
+        boxSizing: 'border-box',
+        width: 28,
+        height: 28,
+        padding: 0,
         cursor: 'pointer',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: 999,
+        border: '1px solid var(--dsw-alias-border-l1)',
+        borderRadius: 4,
+        background: 'var(--dsw-alias-bg-layer-1)',
         flex: '0 0 auto',
       },
       paletteGrid: { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, padding: '6px 4px' },
       swatch: {
-        width: 24,
-        height: 24,
-        borderRadius: 6,
+        width: 28,
+        height: 28,
+        borderRadius: 4,
         cursor: 'pointer',
         border: '1px solid rgba(127, 127, 127, 0.4)',
         padding: 0,
@@ -632,8 +664,8 @@ window.__ModuleLoader__.load({
         right: 14,
         bottom: 12,
         zIndex: 40,
-        padding: '5px 10px',
-        borderRadius: 6,
+        padding: '4px 8px',
+        borderRadius: 4,
         fontSize: 12,
         color: 'var(--dsw-alias-label-primary)',
         background: 'var(--dsw-alias-bg-layer-2)',
@@ -1244,6 +1276,17 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function terminalFailureDetail(value) {
+      if (!value || typeof value !== 'object') return ''
+      const info = value.info && typeof value.info === 'object' ? value.info : {}
+      const candidates = [info.message, info.error, info.reason, info.detail, value.error, value.message]
+      for (const item of candidates) {
+        if (typeof item === 'string' && item.trim()) return item.trim()
+        if (item && typeof item === 'object' && typeof item.message === 'string' && item.message.trim()) return item.message.trim()
+      }
+      return ''
+    }
+
     function GitTerminalPane({ bridge, repo, onClose }) {
       const servicesReady = React.useSyncExternalStore(bridge.subscribeServices, bridge.isReady)
       const terminalComponent = React.useSyncExternalStore(bridge.subscribeTerminalComponent, bridge.getTerminalComponent)
@@ -1338,12 +1381,15 @@ window.__ModuleLoader__.load({
       const getStatusKey = React.useCallback(() => {
         if (!view) return ''
         const value = view.state.getSnapshot()
-        return `${value.phase || ''}|${value.writable ? 1 : 0}|${value.info && value.info.state ? value.info.state : ''}`
+        const detail = (value.phase === 'failed' || value.phase === 'closed')
+          ? terminalFailureDetail(value).replace(/\u001f/g, ' ')
+          : ''
+        return `${value.phase || ''}\u001f${value.writable ? 1 : 0}\u001f${value.info && value.info.state ? value.info.state : ''}\u001f${detail}`
       }, [view])
       // The wrapper only needs phase/writable, not every screen frame; a string
       // snapshot keeps output from re-rendering the whole panel.
       const statusKey = React.useSyncExternalStore(subscribeState, getStatusKey)
-      const [phase = '', writableFlag = '0', infoState = ''] = statusKey.split('|')
+      const [phase = '', writableFlag = '0', infoState = '', detail = ''] = statusKey.split('\u001f')
       const writable = writableFlag === '1'
 
       const restart = React.useCallback(() => {
@@ -1444,8 +1490,11 @@ window.__ModuleLoader__.load({
       else if (gitBash === null) status = '查找 Git Bash…'
       else if (!gitBash) status = '未找到 Git Bash，使用默认 Shell'
       else if (!view) status = '创建终端…'
-      else if (phase === 'failed') status = '连接失败'
-      else if (phase === 'closed' || infoState === 'exited') status = '终端已关闭'
+      else if (phase === 'failed') {
+        const reason = detail || (infoState && infoState !== 'exited' ? infoState : '')
+        status = reason ? `连接失败：${reason}` : '连接失败'
+      }
+      else if (phase === 'closed' || infoState === 'exited') status = detail ? `终端已关闭：${detail}` : '终端已关闭'
       else if (phase === 'connected') status = 'Git Bash'
 
       let body
@@ -1480,8 +1529,8 @@ window.__ModuleLoader__.load({
           h('span', {
             style: {
               flex: '0 0 auto',
-              fontSize: 10,
-              maxWidth: 150,
+              fontSize: 12,
+              maxWidth: 280,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -1514,6 +1563,7 @@ window.__ModuleLoader__.load({
           const isCollapsed = collapsed.has(dir.key)
           rows.push(h('div', {
             key: 'dir:' + dir.key,
+            className: 'dsh-git-hit',
             style: {
               ...(depth === 0 ? styles.moduleRow : styles.dirRow),
               paddingLeft: depth === 0 ? 12 : 8 + depth * 14,
@@ -1533,6 +1583,7 @@ window.__ModuleLoader__.load({
           const deleted = isDeleted(entry)
           rows.push(h('div', {
             key: 'file:' + entry.path,
+            className: 'dsh-git-hit',
             style: { ...styles.fileRow, paddingLeft: 8 + depth * 14 + 12 },
             onClick: () => openDiffTab(entry),
             title: `${statusLabel(entry.xy)}\n${entry.path}`,
@@ -1555,7 +1606,7 @@ window.__ModuleLoader__.load({
           h('div', null, `${files.length} 个文件有未提交改动 · 已暂存 ${stagedCount} · 未暂存 ${unstagedCount} · 未跟踪 ${untrackedCount}`),
           h('div', null, moduleNames.length ? `${moduleNames.length} 个模块：${moduleNames.slice(0, 6).join('、')}${moduleNames.length > 6 ? '…' : ''}` : ''),
           statusLegend(),
-          h('div', { style: { opacity: 0.8, marginTop: 4 } },
+          h('div', { style: { marginTop: 4 } },
             stagedCount > 0
               ? '已暂存的文件可以直接提交（本插件只读，不执行 add / commit）。'
               : '还没有暂存任何文件；本插件只读，不会替你 add / commit。'),
@@ -1573,7 +1624,7 @@ window.__ModuleLoader__.load({
       const loadingRow = (relPath, depth) => {
         rows.push(h('div', {
           key: 'dir-loading:' + relPath,
-          style: { padding: `4px 10px 4px ${pad(depth, 12)}px`, fontSize: 11, color: 'var(--dsw-alias-label-secondary)' },
+          style: { padding: `4px 8px 4px ${pad(depth, 12)}px`, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' },
         }, '读取中…'))
       }
       const errorRow = (relPath, rowError, depth) => {
@@ -1583,8 +1634,8 @@ window.__ModuleLoader__.load({
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            padding: `4px 10px 4px ${pad(depth, 12)}px`,
-            fontSize: 11,
+            padding: `4px 8px 4px ${pad(depth, 12)}px`,
+            fontSize: 12,
             color: 'var(--dsw-alias-state-error-primary)',
           },
         },
@@ -1609,7 +1660,7 @@ window.__ModuleLoader__.load({
         if (!node.dirs.length && !node.files.length) {
           rows.push(h('div', {
             key: 'dir-empty:' + relPath,
-            style: { padding: `4px 10px 4px ${pad(depth, 12)}px`, fontSize: 11, color: 'var(--dsw-alias-label-secondary)' },
+            style: { padding: `4px 8px 4px ${pad(depth, 12)}px`, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' },
           }, '空目录'))
           return
         }
@@ -1618,6 +1669,7 @@ window.__ModuleLoader__.load({
           const changedCount = changedDirCounts.get(dir.path) || 0
           rows.push(h('div', {
             key: 'dir-tree:' + dir.path,
+            className: 'dsh-git-hit',
             style: {
               ...(depth === 0 ? styles.moduleRow : styles.dirRow),
               paddingLeft: depth === 0 ? 12 : pad(depth),
@@ -1644,6 +1696,7 @@ window.__ModuleLoader__.load({
           const tone = change ? colorForStatus(change.xy) : 'var(--dsw-alias-label-primary)'
           rows.push(h('div', {
             key: 'file-tree:' + file.path,
+            className: 'dsh-git-hit',
             style: { ...styles.fileRow, paddingLeft: pad(depth, 12) },
             onClick: () => (deleted ? openDiffTab(change) : openFileTab(file.path)),
             title: `${change ? statusLabel(change.xy) + (deleted ? '（已删除，点开差异）' : '') + ' · ' : ''}${file.path}${file.type === 'link' ? '（符号链接）' : ''}`,
@@ -1655,7 +1708,7 @@ window.__ModuleLoader__.load({
         if (node.truncated) {
           rows.push(h('div', {
             key: 'dir-truncated:' + relPath,
-            style: { padding: `4px 10px 4px ${pad(depth, 12)}px`, fontSize: 11, color: 'var(--dsw-alias-state-warn-primary)' },
+            style: { padding: `4px 8px 4px ${pad(depth, 12)}px`, fontSize: 12, color: 'var(--dsw-alias-state-warn-primary)' },
           }, '这个目录条目超过 5000 个，只显示前 5000 个。'))
         }
       }
@@ -1663,7 +1716,7 @@ window.__ModuleLoader__.load({
       return h('div', null,
         h('div', { style: styles.treeSummary },
           h('div', null, `整个项目目录 · 顶层 ${rootNode.dirs.length} 个文件夹 / ${rootNode.files.length} 个文件`),
-          h('div', { style: { marginTop: 4, opacity: 0.85 } },
+          h('div', { style: { marginTop: 4 } },
             '含 .gitignore 忽略的目录/文件和空目录（隐藏 .git）；点击文件夹展开，点文件打开全文。'),
           h('div', { style: { marginTop: 6, display: 'flex', gap: 6 } },
             h('button', { style: styles.buttonQuiet, onClick: resetDirectories }, '重新读取'),
@@ -2399,6 +2452,7 @@ window.__ModuleLoader__.load({
           : graph.length
             ? graph.map((line, index) => h('div', {
                 key: index,
+                className: line.sha ? 'dsh-git-hit' : undefined,
                 style: styles.graphRow,
                 onClick: line.sha ? () => openCommitTab({ sha: line.sha, short: line.sha.slice(0, 7), subject: line.text }) : undefined,
               },
@@ -2410,33 +2464,35 @@ window.__ModuleLoader__.load({
         listContent = commits.length
           ? commits.map((commit) => h('div', {
               key: commit.sha,
+              className: 'dsh-git-hit',
               style: { ...styles.logRow, ...(activeTab && activeTab.kind === 'commit' && activeTab.rev === commit.sha ? styles.repoRowActive : {}) },
               onClick: () => openCommitTab(commit),
               title: commit.sha + '\n' + commit.author + ' · ' + commit.date,
             },
-              h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 11, color: 'var(--dsw-alias-brand-primary)' } }, commit.short),
+              h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-brand-primary)' } }, commit.short),
               h('span', { style: { flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, commit.subject),
-              h('span', { style: { flex: '0 0 auto', fontSize: 11, color: 'var(--dsw-alias-label-secondary)' } }, commit.date),
+              h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, commit.date),
             ))
           : h('div', { style: styles.empty }, unborn ? '这个仓库还没有任何提交。' : '没有提交记录。')
       } else {
         const branchRows = branches.map((branch) => h('div', {
           key: branch.name,
+          className: branch.current ? undefined : 'dsh-git-hit',
           style: { ...styles.branchRow, cursor: branch.current ? 'default' : 'pointer' },
           onClick: branch.current ? undefined : () => switchBranch(branch.name),
           title: branch.upstream ? `${branch.name} → ${branch.upstream}` : branch.name,
         },
           h('span', { style: { flex: '0 0 auto', width: 14, color: 'var(--dsw-alias-state-success-primary)' } }, branch.current ? '●' : ''),
           h('span', { style: { flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
-          h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 11, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
-          h('span', { style: { flex: '0 0 auto', fontSize: 10, color: branch.current ? 'var(--dsw-alias-label-secondary)' : 'var(--dsw-alias-brand-primary)' } },
+          h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
+          h('span', { style: { flex: '0 0 auto', fontSize: 12, color: branch.current ? 'var(--dsw-alias-label-secondary)' : 'var(--dsw-alias-brand-primary)' } },
             branchBusy === branch.name ? '切换中…' : (branch.current ? '当前' : '切换')),
         ))
         if (branches.length === 0 && unborn && status && status.branch) {
           branchRows.push(h('div', { key: 'unborn', style: styles.branchRow },
             h('span', { style: { flex: '0 0 auto', width: 14, color: 'var(--dsw-alias-state-idle-primary)' } }, '○'),
             h('span', { style: { flex: '1 1 auto' } }, status.branch),
-            h('span', { style: { flex: '0 0 auto', fontSize: 11, color: 'var(--dsw-alias-label-secondary)' } }, '尚无提交'),
+            h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, '尚无提交'),
           ))
         }
         listContent = branchRows.length ? branchRows : h('div', { style: styles.empty }, '没有本地分支。')
@@ -2445,7 +2501,7 @@ window.__ModuleLoader__.load({
       const tabButton = (key, label, count) =>
         h('button', {
           key,
-          style: { ...styles.tab, ...(tab === key ? styles.tabActive : {}) },
+          style: { ...styles.tab, ...(tab === key ? { ...styles.tabActive, borderBottomColor: repoColor } : {}) },
           title: key === 'directory' ? '查看整个项目目录（含 .gitignore 忽略的文件夹）' : undefined,
           onClick: () => setTab(key),
         }, count === undefined || count === 0 ? label : `${label} ${count}`)
@@ -2493,7 +2549,7 @@ window.__ModuleLoader__.load({
       const repoMenu = repoMenuOpen
         ? h(React.Fragment, null,
             h('div', { style: styles.overlay, onClick: () => setRepoMenuOpen(false) }),
-            h('div', { style: { ...styles.popover, top: 44, left: 0 } },
+            h('div', { style: { ...styles.popover, top: 40, left: 0 } },
               h('input', {
                 style: styles.input,
                 value: repoFilter,
@@ -2512,7 +2568,11 @@ window.__ModuleLoader__.load({
                     const active = normalizeKey(repo) === key
                     return h('div', {
                       key,
-                      style: { ...styles.repoRow, ...(active ? styles.repoRowActive : {}) },
+                      className: 'dsh-git-hit-pop',
+                      style: {
+                        ...styles.repoRow,
+                        ...(active ? { ...styles.repoRowActive, borderBottomColor: projectColorFor(entry.path, repoColors) } : {}),
+                      },
                       onClick: () => {
                         if (entry.error) {
                           setNewPath(entry.path)
@@ -2541,7 +2601,7 @@ window.__ModuleLoader__.load({
                           entry.error ? h('span', { style: { ...styles.repoMeta, color: 'var(--dsw-alias-state-error-primary)' } }, '不可访问') : null,
                         ),
                         h('div', { style: styles.repoRowPath }, entry.path),
-                        entry.error ? h('div', { style: { marginTop: 2, fontSize: 10, color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'normal' } }, entry.error) : null,
+                        entry.error ? h('div', { style: { marginTop: 2, fontSize: 12, color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'normal' } }, entry.error) : null,
                       ),
                       h('div', { style: styles.repoActions },
                         h('button', {
@@ -2577,14 +2637,14 @@ window.__ModuleLoader__.load({
                 }),
                 h('button', { style: styles.button, onClick: addRepo, disabled: addBusy }, addBusy ? '验证中…' : '添加'),
               ),
-              addError ? h('div', { style: { padding: '4px 6px', fontSize: 11, color: 'var(--dsw-alias-state-error-primary)' } }, addError) : null,
+              addError ? h('div', { style: { padding: '4px 8px', fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' } }, addError) : null,
               h('div', { style: styles.divider }),
               h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px' } },
                 h('button', { style: styles.buttonQuiet, onClick: () => loadRepos(true), disabled: reposBusy }, reposBusy ? '重新检测中…' : '重新检测'),
-                h('span', { style: { fontSize: 10, color: 'var(--dsw-alias-label-secondary)' } },
+                h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } },
                   auto.source === 'registry' ? '来源：DSH 工作区注册表' : auto.source === 'storage' ? '来源：DSH 工作区记录文件' : '来源：插件配置'),
               ),
-              h('div', { style: { padding: '2px 6px', fontSize: 10, lineHeight: 1.6, color: 'var(--dsw-alias-label-secondary)' } },
+              h('div', { style: { padding: '4px 8px', fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } },
                 '每行右侧的调色板按钮改这个项目的颜色，箭头按钮在文件管理器里打开项目目录；颜色只影响这个面板。'),
             ),
           )
@@ -2592,7 +2652,7 @@ window.__ModuleLoader__.load({
 
       const repoButton = h('div', { style: { position: 'relative', flex: '0 0 auto' } },
         h('div', {
-          style: { ...styles.repoButton, borderLeft: `3px solid ${repoColor}` },
+          style: { ...styles.repoButton, borderBottomColor: repoColor },
           onClick: () => { setRepoMenuOpen((open) => !open); setBranchMenuOpen(false); setSearchOpen(false); setRepoFilter(''); setAddError('') },
           title: repo ? `${currentName}\n${repo}\n点这里切换项目 / 添加仓库` : '选择项目',
         },
@@ -2617,7 +2677,7 @@ window.__ModuleLoader__.load({
           onClick: () => { setBranchMenuOpen((open) => !open); setRepoMenuOpen(false); setSearchOpen(false); setBranchError('') },
           title: repo ? '切换本地分支' : '先选择一个项目',
         },
-          h('span', { style: { color: repoColor, fontSize: 10, flex: '0 0 auto' } }, '●'),
+          h('span', { style: { color: repoColor, fontSize: 12, flex: '0 0 auto' } }, '●'),
           h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
             (status && status.branch ? status.branch : '—') + (unborn ? ' · 无提交' : '')),
           status && status.ahead ? h('span', { style: { color: 'var(--dsw-alias-state-success-primary)' } }, '↑' + status.ahead) : null,
@@ -2629,7 +2689,7 @@ window.__ModuleLoader__.load({
           h('div', { style: styles.branchMenu },
             h('div', { style: styles.popHead }, `本地分支 · ${branches.length}`),
             files.length
-              ? h('div', { style: { padding: '2px 6px 6px', fontSize: 10, lineHeight: 1.6, color: 'var(--dsw-alias-state-warn-primary)' } },
+              ? h('div', { style: { padding: '4px 8px', fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-state-warn-primary)' } },
                   `有 ${files.length} 个未提交改动：切换分支会带着它们，冲突时 git 会拒绝切换。`)
               : null,
             branches.length === 0
@@ -2637,16 +2697,17 @@ window.__ModuleLoader__.load({
                   unborn ? '这个仓库还没有提交，暂时没有可切换的分支。' : '没有本地分支。')
               : branches.map((branch) => h('div', {
                   key: branch.name,
+                  className: 'dsh-git-hit-pop',
                   style: { ...styles.pickerRow, ...(branch.current ? styles.repoRowActive : {}) },
                   onClick: () => { if (!branch.current) switchBranch(branch.name) },
                   title: branch.upstream ? `${branch.name} → ${branch.upstream}` : branch.name,
                 },
                   h('span', { style: { width: 12, flex: '0 0 auto', color: 'var(--dsw-alias-state-success-primary)' } }, branch.current ? '●' : ''),
-                  h('span', { style: { flex: '1 1 auto', fontWeight: branch.current ? 700 : 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
+                  h('span', { style: { flex: '1 1 auto', fontWeight: branch.current ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
                   branchBusy === branch.name
-                    ? h('span', { style: { flex: '0 0 auto', fontSize: 10, color: 'var(--dsw-alias-brand-primary)' } }, '切换中…')
-                    : h('span', { style: { flex: '0 0 auto', fontSize: 10, color: 'var(--dsw-alias-label-secondary)' } }, branch.current ? '当前' : '点击切换'),
-                  h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 10, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
+                    ? h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-brand-primary)' } }, '切换中…')
+                    : h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.current ? '当前' : '点击切换'),
+                  h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
                 )),
             h('div', { style: { ...styles.popHead, borderTop: '1px solid var(--dsw-alias-border-l1)', marginTop: 4 } },
               '用本机 git 切换分支，不会新开分支。'),
@@ -2662,6 +2723,7 @@ window.__ModuleLoader__.load({
 
       const searchRow = (item, index) => h('div', {
         key: item.key,
+        className: 'dsh-git-hit-pop',
         style: { ...styles.resultRow, ...(index === searchIndex ? styles.resultActive : {}) },
         onMouseEnter: () => setSearchIndex(index),
         onClick: () => openSearchItem(item),
@@ -2670,8 +2732,8 @@ window.__ModuleLoader__.load({
         item.kind === 'changed'
           ? h('span', { style: { ...styles.xy, color: colorForStatus(item.xy) } }, displayXY(item))
           : h('span', { style: { ...styles.tabBadge, color: extColor(item.path) } }, extLabel(item.path)),
-        h('span', { style: { ...styles.fileName, fontSize: 12.5 } }, item.path),
-        h('span', { style: { flex: '0 0 auto', fontSize: 10, color: 'var(--dsw-alias-label-secondary)' } }, item.kind === 'changed' ? '差异' : '全文'),
+        h('span', { style: styles.fileName }, item.path),
+        h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, item.kind === 'changed' ? '差异' : '全文'),
       )
 
       const searchBox = h('div', { style: styles.searchWrap, ref: searchWrapRef },
@@ -2861,6 +2923,7 @@ window.__ModuleLoader__.load({
         : null
 
       return h('div', { style: styles.root },
+        h('style', null, '.dsh-git-hit:hover{background:var(--dsw-alias-bg-layer-2)}.dsh-git-hit-pop:hover{background:var(--dsw-alias-bg-layer-1)}'),
         tabsBar,
         h('div', { style: styles.pathBar },
           h('span', {
