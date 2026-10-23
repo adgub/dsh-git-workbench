@@ -15,7 +15,8 @@
  *   each project has an editable accent colour.
  *
  * Git access goes through the host route. This module never spawns a process.
- * Branch create/rename, pull, push and opening the folder run only when a
+ * Branch create/rename, pull, push, binding origin, merging, staging, committing,
+ * soft-resetting an unpushed commit, and opening the folder run only when a
  * panel button asks the host to do it.
  */
 window.__ModuleLoader__.load({
@@ -116,6 +117,44 @@ window.__ModuleLoader__.load({
         color: 'var(--dsw-alias-state-error-primary)',
         border: '1px solid var(--dsw-alias-state-error-primary)',
       },
+      infoBanner: {
+        margin: '8px 10px',
+        padding: '8px 10px',
+        borderRadius: 4,
+        fontSize: 12,
+        lineHeight: 1.5,
+        color: 'var(--dsw-alias-label-primary)',
+        background: 'var(--dsw-alias-bg-layer-1)',
+        border: '1px solid var(--dsw-alias-border-l1)',
+      },
+      rowButton: {
+        boxSizing: 'border-box',
+        minHeight: 24,
+        padding: '2px 8px',
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: 'pointer',
+        color: 'var(--dsw-alias-label-primary)',
+        background: 'var(--dsw-alias-bg-layer-2)',
+        border: '1px solid var(--dsw-alias-border-l1)',
+        borderRadius: 4,
+        whiteSpace: 'nowrap',
+      },
+      commitBox: {
+        width: '100%',
+        boxSizing: 'border-box',
+        minHeight: 52,
+        padding: '6px 8px',
+        fontSize: 12,
+        fontFamily: 'inherit',
+        lineHeight: 1.45,
+        color: 'var(--dsw-alias-label-primary)',
+        background: 'var(--dsw-alias-bg-base)',
+        border: '1px solid var(--dsw-alias-border-l1)',
+        borderRadius: 4,
+        resize: 'vertical',
+      },
+      fileActions: { display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' },
       body: {
         display: 'flex',
         flex: '1 1 auto',
@@ -1817,9 +1856,59 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function renderChangeFile(entry, padLeft, openDiffTab) {
+    function relationText(report) {
+      const branch = report && report.branch ? report.branch : '默认分支'
+      if (!report) return ''
+      if (report.relation === 'push') return `远端分支 ${branch} 没有需要合进来的提交。用「推送」把本地提交送上去。`
+      if (report.relation === 'same') return `本地和远端 ${branch} 是同一次提交。`
+      if (report.relation === 'empty') return '远端还没有任何提交。本地提交之后直接推送。'
+      if (report.relation === 'ff') return `远端 ${branch} 比本地超前，可以快进合并，不会产生新的合并提交。`
+      if (report.relation === 'merge') return `本地和远端 ${branch} 都有新提交。合并后改动先放进暂存区，填写日志再提交。`
+      if (report.relation === 'unrelated') return `本地和远端 ${branch} 没有共同祖先。合并会把两边的文件放到同一次提交里；冲突的文件在变更树里选择「用本地」或「用远端」，再填写日志提交。`
+      if (report.relation === 'local-unborn') return `本地还没有提交。会把远端 ${branch} 的历史取下来作为当前分支。`
+      if (report.relation === 'choose') return '远端有多个分支，先选择要合并的那一个。'
+      if (report.pending && report.conflicts && report.conflicts.length) return `有 ${report.conflicts.length} 个冲突。在变更树里选择「用本地」或「用远端」，再填写日志提交。`
+      if (report.pending) return '两边的改动已经放进暂存区。填写日志后提交。'
+      if (report.merged) return '已把远端历史快进到本地。'
+      return '已读取远端。'
+    }
+
+    function integrateLabel(relation) {
+      if (relation === 'ff') return '快进合并'
+      if (relation === 'local-unborn') return '取下远端历史'
+      return '合并两边'
+    }
+
+    function renderChangeFile(entry, padLeft, openDiffTab, actions) {
       const tone = colorForStatus(entry.xy)
       const deleted = isDeleted(entry)
+      const busy = !!(actions && (actions.stageBusy === entry.path || actions.sideBusy === entry.path))
+      let action = null
+      if (actions && entry.kind === 'conflict') {
+        action = h('span', { style: styles.fileActions, onClick: (event) => event.stopPropagation() },
+          h('button', {
+            style: styles.rowButton,
+            disabled: busy,
+            title: '保留当前分支上的这一边',
+            onClick: () => actions.onTakeSide(entry, 'ours'),
+          }, '用本地'),
+          h('button', {
+            style: styles.rowButton,
+            disabled: busy,
+            title: '保留远端的这一边',
+            onClick: () => actions.onTakeSide(entry, 'theirs'),
+          }, '用远端'),
+        )
+      } else if (actions && (entry.unstaged || entry.untracked)) {
+        action = h('button', {
+          style: styles.rowButton,
+          disabled: busy,
+          title: 'git add 这个文件',
+          onClick: (event) => { event.stopPropagation(); actions.onStage(entry) },
+        }, actions.stageBusy === entry.path ? '暂存中…' : 'add')
+      } else if (actions && entry.staged) {
+        action = h('span', { style: styles.count }, '已暂存')
+      }
       return h('div', {
         key: 'file:' + entry.path,
         className: 'dsh-git-hit',
@@ -1836,13 +1925,19 @@ window.__ModuleLoader__.load({
           },
         }, baseName(entry.path)),
         h('span', { style: { ...styles.count, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 400 } }, entry.path.includes('/') ? entry.path.slice(0, entry.path.lastIndexOf('/')) : ''),
+        action,
       )
     }
 
     function renderChangeList({
       files, tree, collapsed, toggleDir, openDiffTab, treeMode, onTreeMode,
       stagedCount, unstagedCount, untrackedCount, moduleNames,
+      commitMessage, onCommitMessage, onCommit, commitBusy, commitError, conflictCount, merging,
+      onStage, onTakeSide, stageBusy, sideBusy,
     }) {
+      const actions = { onStage, onTakeSide, stageBusy, sideBusy }
+      const messageReady = !!(commitMessage && String(commitMessage).trim())
+      const canCommit = messageReady && stagedCount > 0 && !conflictCount && !commitBusy
       const rows = []
       const renderNode = (node, depth) => {
         for (const dir of dirsOf(node)) {
@@ -1865,12 +1960,12 @@ window.__ModuleLoader__.load({
           if (!isCollapsed) renderNode(dir, depth + 1)
         }
         for (const entry of node.files) {
-          rows.push(renderChangeFile(entry, 8 + depth * 14 + 12, openDiffTab))
+          rows.push(renderChangeFile(entry, 8 + depth * 14 + 12, openDiffTab, actions))
         }
       }
       if (treeMode === 'files') {
         const flat = files.slice().sort((a, b) => String(a.path).localeCompare(String(b.path), 'zh-Hans-CN'))
-        for (const entry of flat) rows.push(renderChangeFile(entry, 12, openDiffTab))
+        for (const entry of flat) rows.push(renderChangeFile(entry, 12, openDiffTab, actions))
       } else {
         renderNode(tree, 0)
       }
@@ -1893,10 +1988,34 @@ window.__ModuleLoader__.load({
             modeButton('files', '只显示文件'),
           ),
           statusLegend(),
-          h('div', { style: { marginTop: 4 } },
-            stagedCount > 0
-              ? '已暂存的文件可以直接提交（本插件只读，不执行 add / commit）。'
-              : '还没有暂存任何文件；本插件只读，不会替你 add / commit。'),
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 } },
+            h('textarea', {
+              style: styles.commitBox,
+              value: commitMessage || '',
+              placeholder: merging ? '填写日志，完成这次合并' : '提交日志（必填）',
+              spellCheck: false,
+              onChange: (event) => onCommitMessage(event.target.value),
+              onKeyDown: (event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && canCommit) onCommit()
+              },
+            }),
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+              h('button', {
+                style: { ...styles.button, opacity: canCommit ? 1 : 0.45 },
+                disabled: !canCommit,
+                title: !messageReady
+                  ? '先填写提交日志'
+                  : (conflictCount ? '先解决冲突' : (stagedCount === 0 ? '先 add 要提交的文件' : '提交已暂存的文件')),
+                onClick: onCommit,
+              }, commitBusy ? '提交中…' : '提交'),
+              h('span', null, conflictCount
+                ? `${conflictCount} 个冲突待选择，解决后才能提交`
+                : (stagedCount === 0 ? '先 add 文件。日志为空不能提交。' : '只提交已 add 的文件。日志为空不能提交。')),
+            ),
+            commitError
+              ? h('div', { style: { color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'normal' } }, commitError)
+              : null,
+          ),
         ),
         rows,
       )
@@ -2069,6 +2188,17 @@ window.__ModuleLoader__.load({
       const [branchDraft, setBranchDraft] = React.useState('')
       const [renameDraft, setRenameDraft] = React.useState('')
       const [syncBusy, setSyncBusy] = React.useState('')
+      const [origin, setOrigin] = React.useState(null)
+      const [bindUrl, setBindUrl] = React.useState('')
+      const [bindOpen, setBindOpen] = React.useState(false)
+      const [bindBusy, setBindBusy] = React.useState(false)
+      const [bindReport, setBindReport] = React.useState(null)
+      const [integrateBusy, setIntegrateBusy] = React.useState(false)
+      const [commitMessage, setCommitMessage] = React.useState('')
+      const [commitBusy, setCommitBusy] = React.useState(false)
+      const [commitError, setCommitError] = React.useState('')
+      const [stageBusy, setStageBusy] = React.useState('')
+      const [sideBusy, setSideBusy] = React.useState('')
       const [treeMode, setTreeMode] = React.useState(() => (stored.treeMode === 'files' ? 'files' : 'modules'))
       const [changedMarks, setChangedMarks] = React.useState({ added: [], near: [] })
       const [notice, setNotice] = React.useState('')
@@ -2198,7 +2328,33 @@ window.__ModuleLoader__.load({
           headers: { accept: 'application/json', 'x-dsh-git-workbench': '1' },
         })
         const payload = await response.json().catch(() => ({ error: '响应不是合法 JSON' }))
-        if (!response.ok) throw new Error(payload && payload.error ? payload.error : `HTTP ${response.status}`)
+        if (!response.ok) {
+          const error = new Error(payload && payload.error ? payload.error : `HTTP ${response.status}`)
+          error.payload = payload
+          throw error
+        }
+        return payload
+      }, [])
+
+      const callPost = React.useCallback(async (op, body, repoOverride) => {
+        const target = repoOverride === undefined ? repoRef.current : repoOverride
+        const params = new URLSearchParams({ op })
+        if (target) params.set('repo', target)
+        const response = await fetch(apiUrl(params), {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            'x-dsh-git-workbench': '1',
+          },
+          body: JSON.stringify(body || {}),
+        })
+        const payload = await response.json().catch(() => ({ error: '响应不是合法 JSON' }))
+        if (!response.ok) {
+          const error = new Error(payload && payload.error ? payload.error : `HTTP ${response.status}`)
+          error.payload = payload
+          throw error
+        }
         return payload
       }, [])
 
@@ -2347,6 +2503,12 @@ window.__ModuleLoader__.load({
         setBranchMenuOpen(false)
         setBranchError('')
         setTab('changes')
+        setOrigin(null)
+        setBindUrl('')
+        setBindOpen(false)
+        setBindReport(null)
+        setCommitMessage('')
+        setCommitError('')
       }, [resetDirectories])
 
       // First run: land on the configured default or the first readable project.
@@ -2369,11 +2531,12 @@ window.__ModuleLoader__.load({
         setLoading(true)
         setError('')
         try {
-          const [nextStatus, nextLog, nextGraph, nextBranches] = await Promise.all([
+          const [nextStatus, nextLog, nextGraph, nextBranches, nextRemote] = await Promise.all([
             call('status'),
             call('log', { limit: limits.history }),
             call('graph', { limit: limits.graph }),
             call('branches'),
+            call('remote').catch(() => ({ origin: null, unavailable: true })),
           ])
           if (repoRef.current !== token) return
           setStatus(nextStatus)
@@ -2381,6 +2544,7 @@ window.__ModuleLoader__.load({
           setGraph(nextGraph.lines || [])
           setBranches(nextBranches.branches || [])
           setUnborn(!!(nextStatus.unborn || nextLog.unborn || nextGraph.unborn))
+          if (!nextRemote.unavailable) setOrigin(nextRemote.origin || '')
           // A refresh may follow a branch switch; drop the cached file list and
           // directory nodes so search and the project tree pick up the new tree.
           setAllFiles(null)
@@ -2493,6 +2657,140 @@ window.__ModuleLoader__.load({
               ? '宿主半边还是旧版本，重启 DSH 之后才能拉取。'
               : '宿主半边还是旧版本，重启 DSH 之后才能推送。',
           ))
+        } finally {
+          setSyncBusy('')
+        }
+      }, [repo, syncBusy, branchBusy, call, flash, refresh, loadRepos])
+
+      const bindRemote = React.useCallback(async (replace) => {
+        const url = bindUrl.trim()
+        if (!repo || !url || bindBusy) return
+        setBindBusy(true)
+        setBranchError('')
+        try {
+          const result = await call('remoteBind', replace ? { url, replace: '1' } : { url })
+          setOrigin(result.origin || url)
+          setBindReport(result)
+          setBindUrl('')
+          flash(result.command === 'set-url' ? '已更换 origin 并拉取' : '已绑定 origin 并拉取')
+          await refresh(false)
+        } catch (failure) {
+          const payload = failure && failure.payload
+          if (payload && payload.origin) {
+            setOrigin(payload.origin)
+            setBindOpen(true)
+            setBranchError(`已经绑定了 origin：${payload.origin}。确认输入框里的新地址后，点「更换」。`)
+          } else {
+            setBranchError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能绑定仓库。'))
+          }
+        } finally {
+          setBindBusy(false)
+        }
+      }, [repo, bindUrl, bindBusy, call, flash, refresh])
+
+      const planRemote = React.useCallback(async (branch) => {
+        if (!repo || !branch || integrateBusy) return
+        setIntegrateBusy(true)
+        setBranchError('')
+        try {
+          const result = await call('remotePlan', { branch })
+          setBindReport(result)
+        } catch (failure) {
+          setBranchError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能查看远端分支。'))
+        } finally {
+          setIntegrateBusy(false)
+        }
+      }, [repo, integrateBusy, call])
+
+      const integrateRemote = React.useCallback(async () => {
+        if (!repo || !bindReport || !bindReport.branch || integrateBusy) return
+        setIntegrateBusy(true)
+        setBranchError('')
+        try {
+          const result = await call('integrate', { branch: bindReport.branch })
+          setBindReport((current) => ({ ...(current || {}), ...result }))
+          if (result.conflicts && result.conflicts.length) {
+            flash(`有 ${result.conflicts.length} 个冲突，在变更树里选择保留哪一边`)
+            setTab('changes')
+          } else if (result.pending) {
+            flash('两边的改动已暂存，填写日志后提交')
+            setTab('changes')
+          } else if (result.merged) {
+            flash('已快进到远端提交')
+          } else if (result.hint === 'push') {
+            flash('远端没有新提交，可以直接推送')
+          }
+          await refresh(false)
+        } catch (failure) {
+          setBranchError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能合并。'))
+        } finally {
+          setIntegrateBusy(false)
+        }
+      }, [repo, bindReport, integrateBusy, call, flash, refresh])
+
+      const stageFile = React.useCallback(async (entry) => {
+        if (!repo || !entry || !entry.path || stageBusy) return
+        setStageBusy(entry.path)
+        setCommitError('')
+        try {
+          await call('stage', { path: entry.path })
+          flash(`已暂存 ${entry.path}`)
+          await refresh(false)
+        } catch (failure) {
+          setCommitError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能 add。'))
+        } finally {
+          setStageBusy('')
+        }
+      }, [repo, stageBusy, call, flash, refresh])
+
+      const takeSide = React.useCallback(async (entry, side) => {
+        if (!repo || !entry || !entry.path || sideBusy) return
+        setSideBusy(entry.path)
+        setCommitError('')
+        try {
+          await call('takeSide', { path: entry.path, side })
+          flash(side === 'ours' ? `已保留本地的 ${entry.path}` : `已保留远端的 ${entry.path}`)
+          await refresh(false)
+        } catch (failure) {
+          setCommitError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能解决冲突。'))
+        } finally {
+          setSideBusy('')
+        }
+      }, [repo, sideBusy, call, flash, refresh])
+
+      const createCommit = React.useCallback(async () => {
+        const message = commitMessage.trim()
+        if (!repo || !message || commitBusy) return
+        setCommitBusy(true)
+        setCommitError('')
+        try {
+          await callPost('commitCreate', { message })
+          setCommitMessage('')
+          setBindReport(null)
+          flash('已提交')
+          await refresh(false)
+          loadRepos(true)
+        } catch (failure) {
+          setCommitError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能提交。'))
+        } finally {
+          setCommitBusy(false)
+        }
+      }, [repo, commitMessage, commitBusy, callPost, flash, refresh, loadRepos])
+
+      const uncommit = React.useCallback(async () => {
+        if (!repo || syncBusy || branchBusy) return
+        setSyncBusy('uncommit')
+        setBranchError('')
+        try {
+          const result = await call('uncommit')
+          flash(result && result.unpushed
+            ? '已回退最近一次提交。仓库还没有上游，这次提交只在本地，改动仍在暂存区。'
+            : '已回退最近一次未推送的提交，改动仍在暂存区。')
+          setTab('changes')
+          await refresh(false)
+          loadRepos(true)
+        } catch (failure) {
+          setBranchError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能回退提交。'))
         } finally {
           setSyncBusy('')
         }
@@ -2638,6 +2936,8 @@ window.__ModuleLoader__.load({
       const stagedCount = files.filter((item) => item.staged).length
       const unstagedCount = files.filter((item) => item.unstaged).length
       const untrackedCount = files.filter((item) => item.untracked).length
+      const conflictCount = files.filter((item) => item.kind === 'conflict').length
+      const canUncommit = !!repo && !unborn && !!status && !status.merging && (!status.upstream || status.ahead > 0)
       const moduleNames = React.useMemo(() => {
         const names = tree.dirs.map((dir) => dir.name)
         if (tree.files.length > 0) names.unshift('根目录')
@@ -2805,6 +3105,9 @@ window.__ModuleLoader__.load({
           listContent = renderChangeList({
             files, tree, collapsed, toggleDir, openDiffTab, treeMode, onTreeMode: chooseTreeMode,
             stagedCount, unstagedCount, untrackedCount, moduleNames,
+            commitMessage, onCommitMessage: (value) => { setCommitMessage(value); setCommitError('') },
+            onCommit: createCommit, commitBusy, commitError, conflictCount, merging: !!(status && status.merging),
+            onStage: stageFile, onTakeSide: takeSide, stageBusy, sideBusy,
           })
         }
       } else if (tab === 'directory') {
@@ -2845,7 +3148,7 @@ window.__ModuleLoader__.load({
             : h('div', { style: styles.empty }, '没有提交记录。')
       } else if (tab === 'log') {
         listContent = commits.length
-          ? commits.map((commit) => h('div', {
+          ? commits.map((commit, index) => h('div', {
               key: commit.sha,
               className: 'dsh-git-hit',
               style: { ...styles.logRow, ...(activeTab && activeTab.kind === 'commit' && activeTab.rev === commit.sha ? styles.repoRowActive : {}) },
@@ -2855,6 +3158,14 @@ window.__ModuleLoader__.load({
               h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-brand-primary)' } }, commit.short),
               h('span', { style: { flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, commit.subject),
               h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, commit.date),
+              index === 0
+                ? h('button', {
+                    style: styles.rowButton,
+                    disabled: !canUncommit || !!syncBusy || !!branchBusy,
+                    title: '撤销最近一次还没推送的提交。改动留在暂存区。已经推送的提交不能回退。',
+                    onClick: (event) => { event.stopPropagation(); uncommit() },
+                  }, syncBusy === 'uncommit' ? '回退中…' : '回退')
+                : null,
             ))
           : h('div', { style: styles.empty }, unborn ? '这个仓库还没有任何提交。' : '没有提交记录。')
       } else {
@@ -3137,6 +3448,18 @@ window.__ModuleLoader__.load({
           title: 'git push。没有上游时推送到 origin 并设置上游。不会使用 --force。',
           onClick: () => syncBranch('push'),
         }, syncBusy === 'push' ? '推送中…' : `推送${status && status.ahead ? ' ↑' + status.ahead : ''}`),
+        h('button', {
+          style: styles.button,
+          disabled: !canUncommit || !!syncBusy || !!branchBusy,
+          title: '撤销最近一次还没推送的提交（git reset --soft HEAD~1）。改动留在暂存区。已经推送的提交不能回退。',
+          onClick: uncommit,
+        }, syncBusy === 'uncommit' ? '回退中…' : '回退'),
+        h('button', {
+          style: styles.button,
+          disabled: !repo || !!bindBusy,
+          title: origin ? `已绑定 origin：${origin}` : '粘贴远端仓库地址，记为 origin 并拉取',
+          onClick: () => setBindOpen((open) => !open),
+        }, origin ? '更换仓库' : '绑定仓库'),
       )
 
       const refreshButton = h('button', {
@@ -3378,6 +3701,59 @@ window.__ModuleLoader__.load({
         !error && reposError && !oldHost ? h('div', { style: styles.banner }, reposError) : null,
         !error && oldHost ? h('div', { style: styles.banner }, '宿主半边还是旧版本（还没有 /repos 接口）：退出 DSH 再启动后，自动识别工作区项目才会生效。现在可以先用「选取项目 → 手动添加仓库」打开项目。') : null,
         branchError ? h('div', { style: { ...styles.banner, cursor: 'pointer' }, title: '点击关闭', onClick: () => setBranchError('') }, branchError) : null,
+        repo && (bindOpen || origin === '' || bindReport)
+          ? h('div', { style: styles.infoBanner },
+              origin
+                ? h('div', null, `当前 origin：${origin}`)
+                : h('div', null, '这个项目还没有绑定远端仓库。粘贴地址后会执行 git remote add origin，并 fetch。'),
+              h('div', { style: { display: 'flex', gap: 6, marginTop: 6 } },
+                h('input', {
+                  style: styles.input,
+                  value: bindUrl,
+                  spellCheck: false,
+                  placeholder: 'https://github.com/org/repo.git',
+                  onChange: (event) => setBindUrl(event.target.value),
+                  onKeyDown: (event) => { if (event.key === 'Enter') bindRemote(!!origin) },
+                }),
+                h('button', {
+                  style: styles.button,
+                  disabled: !bindUrl.trim() || !!bindBusy,
+                  onClick: () => bindRemote(!!origin),
+                }, bindBusy ? '绑定中…' : (origin ? '更换' : '绑定')),
+              ),
+              bindReport
+                ? h('div', { style: { marginTop: 6 } },
+                    h('div', null, relationText(bindReport)),
+                    (bindReport.branches || []).length > 1
+                      ? h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 } },
+                          bindReport.branches.map((name) => h('button', {
+                            key: name,
+                            style: {
+                              ...styles.rowButton,
+                              ...(name === bindReport.branch ? { borderColor: repoColor, color: repoColor } : {}),
+                            },
+                            disabled: !!integrateBusy,
+                            onClick: () => planRemote(name),
+                          }, name)),
+                        )
+                      : null,
+                    ['ff', 'merge', 'unrelated', 'local-unborn'].includes(bindReport.relation)
+                      ? h('div', { style: { marginTop: 6 } },
+                          h('button', {
+                            style: styles.button,
+                            disabled: !!integrateBusy || !bindReport.branch,
+                            onClick: integrateRemote,
+                          }, integrateBusy ? '合并中…' : integrateLabel(bindReport.relation)),
+                        )
+                      : null,
+                    h('button', {
+                      style: { ...styles.buttonQuiet, marginTop: 6 },
+                      onClick: () => { setBindReport(null); setBindOpen(false) },
+                    }, '关闭'),
+                  )
+                : null,
+            )
+          : null,
         h('div', { style: styles.body, ref: bodyRef },
           sidebar,
           sidebarSplitter,

@@ -5,8 +5,9 @@
  * repository discovery, status, log, graph, branches, one file diff, one file
  * body, the tracked-file list, a lazy directory listing for the project tree,
  * the local Git Bash path, one commit patch, plus the local actions the panel
- * offers: switching, creating and renaming a branch, pull --ff-only, push, and
- * revealing the repository in the OS file manager.
+ * offers: switching, creating and renaming a branch, pull --ff-only, push,
+ * binding origin, merging the remote branch, staging a file, committing,
+ * soft-resetting an unpushed tip, and revealing the repository in the OS file manager.
  *
  * Repository discovery:
  * - Workspaces come from `ctx.workspaceRegistry` when the host composes it,
@@ -23,9 +24,11 @@
  * - `GIT_TERMINAL_PROMPT=0` so a credential prompt can never hang the route.
  * - Every op has a timeout; output is capped.
  * - Reads are open. Mutations (`switch`, `branchCreate`, `branchRename`, `pull`,
- *   `push`, `reveal`) require the panel's `x-dsh-git-workbench: 1` header, so a
- *   cross-origin page cannot trigger them. There is no add, commit, reset, or
- *   `--force` path. Pull is `--ff-only`. Push never uses `--force`.
+ *   `push`, `reveal`, `remoteBind`, `integrate`, `stage`, `commitCreate`,
+ *   `uncommit`, `takeSide`) require the panel's `x-dsh-git-workbench: 1` header,
+ *   so a cross-origin page cannot trigger them. Pull is `--ff-only`. Push,
+ *   reset and merge never use `--force`. Uncommit is `reset --soft` of the tip
+ *   and only when that commit is not on the upstream.
  */
 import { spawn } from 'node:child_process'
 import { lstat, readdir, readFile, stat } from 'node:fs/promises'
@@ -152,8 +155,13 @@ async function acceptBranchName(repo, value) {
 async function currentBranchName(repo) {
   const head = await git(['rev-parse', '--abbrev-ref', 'HEAD'], repo)
   const name = head.ok ? head.stdout.trim() : ''
-  if (!name || name === 'HEAD') return ''
-  return name
+  if (name && name !== 'HEAD') return name
+  // An unborn branch has no commit yet, so rev-parse refuses HEAD. symbolic-ref
+  // still reports the branch name, and stays quiet when HEAD is detached.
+  const symbolic = await git(['symbolic-ref', '--quiet', '--short', 'HEAD'], repo)
+  const fallback = symbolic.ok ? symbolic.stdout.trim() : ''
+  if (!fallback || fallback === 'HEAD') return ''
+  return fallback
 }
 
 async function localBranchExists(repo, branch) {
@@ -259,9 +267,9 @@ function parseStatus(out) {
     }
     match = line.match(/^u (\S\S) (.*)$/)
     if (match) {
-      // u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
+      // Remainder is `<sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>`.
       const parts = match[2].split(' ')
-      status.files.push({ path: parts.slice(9).join(' '), xy: match[1], kind: 'conflict', staged: true, unstaged: true })
+      status.files.push({ path: parts.slice(8).join(' '), xy: match[1], kind: 'conflict', staged: true, unstaged: true })
       continue
     }
     if (line.startsWith('? ')) {
@@ -366,6 +374,115 @@ async function probeRepo(dir) {
 async function hasCommits(repo) {
   const probe = await git(['rev-parse', '--verify', '--quiet', 'HEAD'], repo)
   return probe.ok
+}
+
+function gitError(result, fallback) {
+  return String((result && (result.stderr || result.stdout)) || '').trim() || fallback
+}
+
+/** Remote URLs the panel may store as `origin`. Options and local paths are rejected. */
+function remoteUrlCandidate(value) {
+  const url = typeof value === 'string' ? value.trim() : ''
+  if (!url || url.length > 2000) return ''
+  if (url.startsWith('-') || /[\0\r\n\s]/.test(url)) return ''
+  if (/^(https?:\/\/|ssh:\/\/)/i.test(url)) {
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:' && parsed.protocol !== 'ssh:') return ''
+      if (!parsed.hostname) return ''
+      return url
+    } catch {
+      return ''
+    }
+  }
+  if (/^git@[A-Za-z0-9][A-Za-z0-9._-]*:[A-Za-z0-9._~/-]+$/.test(url)) return url
+  return ''
+}
+
+function looseBranch(name) {
+  return !!branchNameCandidate(name) && !name.includes('..') && !name.includes('@{') && !name.endsWith('/')
+}
+
+async function originUrl(repo) {
+  const result = await git(['remote', 'get-url', 'origin'], repo)
+  if (!result.ok) return ''
+  return result.stdout.trim()
+}
+
+async function originBranches(repo) {
+  const listed = await git(['for-each-ref', '--format=%(refname:short)', 'refs/remotes/origin'], repo)
+  if (!listed.ok) return []
+  const names = []
+  for (const line of listed.stdout.split('\n')) {
+    const short = line.trim().replace(/^origin\//, '')
+    if (!looseBranch(short) || short === 'HEAD') continue
+    names.push(short)
+  }
+  return names
+}
+
+/**
+ * Prefer the remote HEAD, then the current local branch, then main/master,
+ * then the only remote branch. `network` asks the remote which branch HEAD is.
+ */
+async function pickOriginBranch(repo, prefer, network) {
+  const names = await originBranches(repo)
+  let chosen = ''
+  if (network && names.length) {
+    const sym = await git(['ls-remote', '--symref', 'origin', 'HEAD'], repo, 20000)
+    if (sym.ok) {
+      const match = sym.stdout.match(/^ref:\s+refs\/heads\/(\S+)\s+HEAD/m)
+      if (match && names.includes(match[1])) chosen = match[1]
+    }
+  }
+  if (!chosen && prefer && names.includes(prefer)) chosen = prefer
+  if (!chosen && names.includes('main')) chosen = 'main'
+  if (!chosen && names.includes('master')) chosen = 'master'
+  if (!chosen && names.length === 1) chosen = names[0]
+  return { branch: chosen, branches: names }
+}
+
+async function classifyAgainstOrigin(repo, branch) {
+  const remoteRef = `refs/remotes/origin/${branch}`
+  const remote = await git(['rev-parse', '--verify', '--quiet', remoteRef], repo)
+  const local = await hasCommits(repo)
+  if (!remote.ok || !remote.stdout.trim()) {
+    return { relation: local ? 'push' : 'empty', branch, remoteRef }
+  }
+  if (!local) return { relation: 'local-unborn', branch, remoteRef }
+  const base = await git(['merge-base', 'HEAD', remoteRef], repo)
+  if (!base.ok) return { relation: 'unrelated', branch, remoteRef }
+  const baseOid = base.stdout.trim()
+  const head = await git(['rev-parse', 'HEAD'], repo)
+  const headOid = head.ok ? head.stdout.trim() : ''
+  const remoteOid = remote.stdout.trim()
+  if (baseOid === headOid && baseOid === remoteOid) return { relation: 'same', branch, remoteRef }
+  if (baseOid === remoteOid) return { relation: 'push', branch, remoteRef }
+  if (baseOid === headOid) return { relation: 'ff', branch, remoteRef }
+  return { relation: 'merge', branch, remoteRef }
+}
+
+async function describeOrigin(repo, network) {
+  const prefer = await currentBranchName(repo)
+  const picked = await pickOriginBranch(repo, prefer, network)
+  if (!picked.branch) {
+    if (picked.branches.length > 1) return { ...picked, relation: 'choose', remoteRef: '' }
+    const local = await hasCommits(repo)
+    return { ...picked, relation: local ? 'push' : 'empty', remoteRef: '' }
+  }
+  const classified = await classifyAgainstOrigin(repo, picked.branch)
+  return { ...classified, branches: picked.branches }
+}
+
+async function conflictPaths(repo) {
+  const status = await git(['status', '--porcelain=v2', '--untracked-files=no'], repo)
+  if (!status.ok) return []
+  return parseStatus(status.stdout).files.filter((file) => file.kind === 'conflict').map((file) => file.path).filter(Boolean)
+}
+
+async function mergeInProgress(repo) {
+  const merging = await git(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], repo)
+  return merging.ok
 }
 
 /**
@@ -684,7 +801,9 @@ async function handleOp(op, params, host = {}) {
   if (op === 'status') {
     const result = await git(['status', '--porcelain=v2', '--branch', '--untracked-files=all'], repo)
     if (!result.ok) return { status: 500, body: { error: result.stderr || 'git status 失败' } }
-    return { status: 200, body: { repo, ...parseStatus(result.stdout) } }
+    const parsed = parseStatus(result.stdout)
+    parsed.merging = await mergeInProgress(repo)
+    return { status: 200, body: { repo, ...parsed } }
   }
 
   if (op === 'log') {
@@ -957,7 +1076,233 @@ async function handleOp(op, params, host = {}) {
     return { status: 200, body: { repo, command, text: String(result.stderr || result.stdout || '').trim() } }
   }
 
+  if (op === 'remote') {
+    const url = await originUrl(repo)
+    return { status: 200, body: { repo, origin: url || null } }
+  }
+
+  if (op === 'remotePlan') {
+    const requested = branchNameCandidate(params.branch)
+    if (!requested) return { status: 400, body: { error: '要先选择远端分支' } }
+    const accepted = await acceptBranchName(repo, requested)
+    if (accepted.error) return accepted.error
+    const names = await originBranches(repo)
+    if (!names.includes(accepted.branch)) {
+      return { status: 404, body: { error: `远端没有分支 ${accepted.branch}`, branches: names } }
+    }
+    const classified = await classifyAgainstOrigin(repo, accepted.branch)
+    return { status: 200, body: { repo, ...classified, branches: names, origin: (await originUrl(repo)) || null } }
+  }
+
+  if (op === 'remoteBind') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '绑定仓库只能从 Git 面板发起' } }
+    const url = remoteUrlCandidate(params.url)
+    if (!url) return { status: 400, body: { error: '仓库地址无效。使用 https://、http://、ssh:// 或 git@host:path' } }
+    const replace = params.replace === '1' || params.replace === true
+    const current = await originUrl(repo)
+    let command = 'unchanged'
+    if (current && current !== url && !replace) {
+      return { status: 409, body: { error: '已经绑定了 origin', origin: current, repo } }
+    }
+    if (!current) {
+      const added = await git(['remote', 'add', 'origin', url], repo)
+      if (!added.ok) return { status: 409, body: { error: gitError(added, 'git remote add 失败'), repo } }
+      command = 'add'
+    } else if (current !== url) {
+      const updated = await git(['remote', 'set-url', 'origin', url], repo)
+      if (!updated.ok) return { status: 409, body: { error: gitError(updated, 'git remote set-url 失败'), repo } }
+      command = 'set-url'
+    }
+    const fetched = await git(['fetch', 'origin'], repo, GIT_NETWORK_TIMEOUT_MS)
+    if (!fetched.ok) {
+      repoCache.delete(pathKey(repo))
+      return { status: 409, body: { error: gitError(fetched, 'git fetch 失败'), origin: url, command, repo } }
+    }
+    const described = await describeOrigin(repo, true)
+    repoCache.delete(pathKey(repo))
+    return {
+      status: 200,
+      body: {
+        repo,
+        origin: url,
+        command,
+        ...described,
+        text: String(fetched.stderr || fetched.stdout || '').trim(),
+      },
+    }
+  }
+
+  if (op === 'integrate') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '合并只能从 Git 面板发起' } }
+    if (await mergeInProgress(repo)) {
+      return { status: 409, body: { error: '已经有一次合并还没完成。先处理冲突并提交，或在变更树里选择保留哪一边。', repo } }
+    }
+    const requested = branchNameCandidate(params.branch)
+    if (!requested) return { status: 400, body: { error: '要先选择远端分支' } }
+    const accepted = await acceptBranchName(repo, requested)
+    if (accepted.error) return accepted.error
+    const branch = accepted.branch
+    const names = await originBranches(repo)
+    if (!names.includes(branch)) return { status: 404, body: { error: `远端没有分支 ${branch}`, repo } }
+    const classified = await classifyAgainstOrigin(repo, branch)
+    if (classified.relation === 'push' || classified.relation === 'same' || classified.relation === 'empty') {
+      return { status: 200, body: { repo, ...classified, branches: names, merged: false, pending: false, conflicts: [], hint: 'push' } }
+    }
+    let result
+    if (classified.relation === 'ff') {
+      result = await git(['merge', '--ff-only', classified.remoteRef], repo, GIT_NETWORK_TIMEOUT_MS)
+    } else if (classified.relation === 'local-unborn') {
+      const staged = await git(['diff', '--cached', '--quiet'], repo)
+      if (staged.code === 1) {
+        return { status: 409, body: { error: '本地还有已暂存、尚未提交的文件。先提交一次，再合并远端。', repo, ...classified } }
+      }
+      const localBranch = await currentBranchName(repo)
+      if (!localBranch) return { status: 409, body: { error: '当前不在分支上，不能取下远端历史', repo } }
+      result = await git(['checkout', '-B', localBranch, classified.remoteRef], repo, GIT_NETWORK_TIMEOUT_MS)
+    } else if (classified.relation === 'merge') {
+      result = await git(['merge', '--no-commit', classified.remoteRef], repo, GIT_NETWORK_TIMEOUT_MS)
+    } else if (classified.relation === 'unrelated') {
+      result = await git(['merge', '--allow-unrelated-histories', '--no-commit', classified.remoteRef], repo, GIT_NETWORK_TIMEOUT_MS)
+    } else {
+      return { status: 409, body: { error: '还不能合并这个远端分支', repo, ...classified } }
+    }
+    const conflicts = await conflictPaths(repo)
+    const pending = await mergeInProgress(repo)
+    repoCache.delete(pathKey(repo))
+    if (!result.ok && conflicts.length === 0 && !pending) {
+      return { status: 409, body: { error: gitError(result, 'git merge 失败'), repo, ...classified } }
+    }
+    return {
+      status: 200,
+      body: {
+        repo,
+        ...classified,
+        branches: names,
+        merged: result.ok && !pending,
+        pending,
+        conflicts,
+        text: String((result && (result.stdout || result.stderr)) || '').trim(),
+      },
+    }
+  }
+
+  if (op === 'takeSide') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '解决冲突只能从 Git 面板发起' } }
+    const side = params.side === 'ours' ? '--ours' : params.side === 'theirs' ? '--theirs' : ''
+    if (!side) return { status: 400, body: { error: 'side 只能是 ours 或 theirs' } }
+    const relPath = safeRelativePath(params.path)
+    if (!relPath) return { status: 400, body: { error: '非法文件路径' } }
+    if (!(await mergeInProgress(repo))) return { status: 409, body: { error: '当前没有进行中的合并', repo } }
+    let result = await git(['checkout', side, '--', relPath], repo)
+    if (!result.ok && /does not exist|did not match/i.test(result.stderr || '')) {
+      result = await git(['rm', '-f', '--', relPath], repo)
+    }
+    if (!result.ok) return { status: 409, body: { error: gitError(result, '无法保留这一边的文件'), repo, path: relPath } }
+    if (result.ok && side) {
+      const added = await git(['add', '--', relPath], repo)
+      if (!added.ok && !/did not match any files/i.test(added.stderr || '')) {
+        return { status: 409, body: { error: gitError(added, 'git add 失败'), repo, path: relPath } }
+      }
+    }
+    repoCache.delete(pathKey(repo))
+    return { status: 200, body: { repo, path: relPath, side: params.side } }
+  }
+
+  if (op === 'stage') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '暂存文件只能从 Git 面板发起' } }
+    const relPath = safeRelativePath(params.path)
+    if (!relPath) return { status: 400, body: { error: '非法文件路径' } }
+    const result = await git(['add', '--', relPath], repo)
+    if (!result.ok) return { status: 409, body: { error: gitError(result, 'git add 失败'), repo, path: relPath } }
+    repoCache.delete(pathKey(repo))
+    return { status: 200, body: { repo, path: relPath } }
+  }
+
+  if (op === 'commitCreate') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '提交只能从 Git 面板发起' } }
+    const message = typeof params.message === 'string' ? params.message.replace(/\r\n/g, '\n').trim() : ''
+    if (!message) return { status: 400, body: { error: '提交日志不能为空' } }
+    if (message.length > 10000) return { status: 400, body: { error: '提交日志过长' } }
+    const conflicts = await conflictPaths(repo)
+    if (conflicts.length) {
+      return { status: 409, body: { error: `还有 ${conflicts.length} 个冲突文件，先选择用本地或用远端`, repo } }
+    }
+    const staged = await git(['diff', '--cached', '--quiet'], repo)
+    if (staged.code !== 0 && staged.code !== 1) {
+      return { status: 500, body: { error: gitError(staged, '无法检查暂存区') } }
+    }
+    if (staged.code === 0 && !(await mergeInProgress(repo))) {
+      return { status: 400, body: { error: '没有已暂存的文件' } }
+    }
+    const result = await git(['commit', '-m', message], repo)
+    if (!result.ok) return { status: 409, body: { error: gitError(result, 'git commit 失败'), repo } }
+    repoCache.delete(pathKey(repo))
+    return { status: 200, body: { repo, text: String(result.stdout || '').trim() } }
+  }
+
+  if (op === 'uncommit') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '回退提交只能从 Git 面板发起' } }
+    const branch = await currentBranchName(repo)
+    if (!branch) return { status: 409, body: { error: '当前不在分支上，不能回退', repo } }
+    if (await mergeInProgress(repo)) return { status: 409, body: { error: '正在合并，先完成这次提交后再回退', repo } }
+    if (!(await hasCommits(repo))) return { status: 409, body: { error: '没有可回退的提交', repo } }
+    const parent = await git(['rev-parse', '--verify', '--quiet', 'HEAD~1'], repo)
+    if (!parent.ok) return { status: 409, body: { error: '这是第一次提交，没有更早的提交可以回退', repo } }
+    const upstream = await git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'], repo)
+    const hasUpstream = upstream.ok && !!upstream.stdout.trim()
+    if (hasUpstream) {
+      const pushed = await git(['merge-base', '--is-ancestor', 'HEAD', '@{upstream}'], repo)
+      if (pushed.ok) return { status: 409, body: { error: '这次提交已经推送，不能回退', repo } }
+    }
+    const result = await git(['reset', '--soft', 'HEAD~1'], repo)
+    if (!result.ok) return { status: 409, body: { error: gitError(result, 'git reset 失败'), repo } }
+    repoCache.delete(pathKey(repo))
+    return { status: 200, body: { repo, branch, parent: parent.stdout.trim(), unpushed: !hasUpstream } }
+  }
+
   return { status: 400, body: { error: `未知操作：${op}` } }
+}
+
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let size = 0
+    let settled = false
+    const fail = (error) => {
+      if (settled) return
+      settled = true
+      reject(error)
+    }
+    req.on('data', (chunk) => {
+      size += chunk.length
+      if (size > 32768) {
+        fail(new Error('请求体过大'))
+        try { req.destroy() } catch { /* ignore */ }
+        return
+      }
+      chunks.push(chunk)
+    })
+    req.on('end', () => {
+      if (settled) return
+      settled = true
+      const raw = Buffer.concat(chunks).toString('utf8').trim()
+      if (!raw) {
+        resolve({})
+        return
+      }
+      try {
+        const parsed = JSON.parse(raw)
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          reject(new Error('请求体必须是 JSON 对象'))
+          return
+        }
+        resolve(parsed)
+      } catch {
+        reject(new Error('请求体不是合法 JSON'))
+      }
+    })
+    req.on('error', fail)
+  })
 }
 
 function sendJson(res, status, payload) {
@@ -991,11 +1336,20 @@ export function apply(ctx, config) {
           try {
             const url = new URL(req.url || '/', 'http://127.0.0.1')
             const params = Object.fromEntries(url.searchParams.entries())
-            if (!params.repo) params.repo = defaultRepo
-            if (req.method !== 'GET' && req.method !== 'HEAD') {
-              sendJson(res, 405, { error: '只支持 GET' })
+            if (req.method === 'POST') {
+              let body
+              try {
+                body = await readJsonBody(req)
+              } catch (error) {
+                sendJson(res, 400, { error: String((error && error.message) || error) })
+                return
+              }
+              Object.assign(params, body)
+            } else if (req.method !== 'GET' && req.method !== 'HEAD') {
+              sendJson(res, 405, { error: '只支持 GET 和 POST' })
               return
             }
+            if (!params.repo) params.repo = defaultRepo
             const op = params.op || 'status'
             const result = await handleOp(op, params, { ctx, config: effective, headers: req.headers })
             sendJson(res, result.status, result.body)

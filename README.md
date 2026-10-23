@@ -38,7 +38,7 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 
 ## 界面
 
-顶栏从左到右是：项目、当前分支、拉取、推送、刷新、Git Bash、文件搜索、已打开文件的标签。下一行是当前路径和改动汇总。
+顶栏从左到右是：项目、当前分支、拉取、推送、回退、绑定仓库、刷新、Git Bash、文件搜索、已打开文件的标签。下一行是当前路径和改动汇总。还没有 origin 时，路径下面会出现绑定地址的输入框。
 
 | 区域 | 作用 |
 |---|---|
@@ -46,7 +46,10 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 | 项目颜色 / 打开目录 | 每行可改颜色，或在文件管理器中打开目录。颜色按路径稳定分配（12 色），只保存在浏览器里 |
 | 分支 | 显示当前分支和 ↑↓。点本地分支后执行 `git switch`（旧版 git 使用 `git checkout`）。菜单里可以新建分支（`git switch -c`）和修改当前分支的名称（`git branch -m`）。未提交改动会带到新分支；冲突时 git 拒绝切换并显示原因。切换或新建后关闭标签页并刷新 |
 | 拉取 / 推送 | 紧挨分支。拉取是 `git pull --ff-only`，不能快进时显示 git 的原因，不自动合并。推送是 `git push`；没有上游时 `git push -u origin <当前分支>`。都不会使用 `--force` |
-| 变更树 | 按模块（顶层目录）→ 子目录 → 文件折叠，也可以改成只显示文件。目录显示改动数，文件旁的圆点表示已暂存、未暂存、未跟踪。点文件打开差异，改动行有底色 |
+| 变更树 | 按模块（顶层目录）→ 子目录 → 文件折叠，也可以改成只显示文件。目录显示改动数，文件旁的圆点表示已暂存、未暂存、未跟踪。未暂存和未跟踪的文件有 **add**。顶部填写提交日志后才能点 **提交**，空日志不能提交。冲突文件可以选择「用本地」或「用远端」。点文件打开差异，改动行有底色 |
+| 绑定仓库 | 还没有 `origin` 时，粘贴 `https://`、`http://`、`ssh://` 或 `git@host:path`。面板执行 `git remote add origin` 和 `git fetch`。已经绑定过时可以更换地址 |
+| 合并两边 | 绑定并拉取之后，按本地和远端的关系给出一个操作：远端没有新提交就去推送；远端超前就快进；两边都有新提交，或两边没有共同祖先，就合并进暂存区，填写日志后再提交。有冲突时在变更树里选择保留哪一边。不会使用 `--force` |
+| 回退 | 撤销当前分支最上面那一次还没推送的提交（`git reset --soft HEAD~1`）。改动留在暂存区。已经在上游里的提交不能回退；第一次提交也不能回退 |
 | 目录 | 按层读取整个项目目录，包含被 `.gitignore` 忽略的项、空目录和 `node_modules`，只隐藏 `.git`。点文件夹再加载下一层，单层超过 5000 项会截断。符号链接目录不展开 |
 | 文件标签与搜索 | 输入即筛选。有改动的文件优先，回车打开差异；其余仓库文件打开全文。`↑` `↓` 选择，`Enter` 打开，`Esc` 关闭 |
 | 差异 / 全文 | 只读。差异范围可切「工作区 / 已暂存 / 全部」，新增行是绿色底，删除行是红色底。全文按扩展名做简单高亮；有改动的行同样铺底色。未跟踪文件直接预览全文，同一文件上可在差异和全文之间切换 |
@@ -71,13 +74,12 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 - 只是父目录：扫描其中的 Git 仓库。默认 1 层，`scanDepth` 可调到 3。不进入 `node_modules`、`dist` 这类目录。
 - 没有权限或目录已删除：仍然返回这条工作区，带 `error`，界面标成「不可访问」，并把路径填进手动添加框。
 
-结果按路径去重。手动添加的路径必须通过 `git rev-parse --is-inside-work-tree`，并且是本地目录。插件不接受远端 URL，扫描时也不会 clone 或 fetch。自动检测只覆盖工作区；工作区之外的仓库需要手动添加，或写进下面的 `workspaces` 配置。拉取和推送只在面板按钮上发生。
+结果按路径去重。手动添加的路径必须通过 `git rev-parse --is-inside-work-tree`，并且是本地目录。扫描和手动添加不接受远端 URL，也不会 clone。自动检测只覆盖工作区；工作区之外的仓库需要手动添加，或写进下面的 `workspaces` 配置。绑定远端、拉取、推送和合并只在面板按钮上发生。
 
 ## 当前边界
 
-- 变更树只展示状态。插件不执行 stage、commit、reset 或 merge。
 - 目录页只读。不创建、不重命名、不删除文件。
-- 会改本机的 Git 操作都必须从面板按钮发起：切换、新建和重命名当前分支，`git pull --ff-only`，`git push`（没有上游时 `git push -u origin <分支>`，从不用 `--force`），以及在文件管理器中打开项目目录。
+- 会改本机的 Git 操作都必须从面板按钮发起：切换、新建和重命名当前分支，`git pull --ff-only`，`git push`（没有上游时 `git push -u origin <分支>`，从不用 `--force`），绑定或更换 `origin`，合并远端分支，暂存单个文件，提交已暂存的文件，回退未推送的最新提交，以及在文件管理器中打开项目目录。
 - 终端里的命令由你输入，以当前系统用户权限执行，不受 Agent 沙箱限制。插件不拦截、不记录输出，也不把输出发给模型。
 - 不注册模型工具。Agent 调不到这个插件，git 只在你点击时运行。
 
@@ -100,7 +102,7 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 - `git` 以参数数组启动（`shell: false`），分支名和路径不会进 shell。
 - `GIT_TERMINAL_PROMPT=0`，不会停在凭据提示上。
 - 读操作 12 秒超时。拉取和推送 60 秒超时。stdout 上限 8MB，文件预览 200KB。
-- 没有 `add`、`commit`、`reset`，推送也不带 `--force`。`switch`、`branchCreate`、`branchRename`、`pull`、`push` 和 `reveal` 要求请求头 `x-dsh-git-workbench: 1`，面板会自己带上，跨站页面触发不了。
+- 推送、合并和回退都不带 `--force`。回退只做 `git reset --soft HEAD~1`，并且这次提交必须还不在上游里。`switch`、`branchCreate`、`branchRename`、`pull`、`push`、`reveal`、`remoteBind`、`integrate`、`stage`、`commitCreate`、`uncommit` 和 `takeSide` 要求请求头 `x-dsh-git-workbench: 1`，面板会自己带上，跨站页面触发不了。提交日志走 POST，空白日志会被拒绝。
 - 文件路径拒绝绝对路径和 `..`。提交号必须是十六进制。仓库路径必须是绝对路径，且通过 `git rev-parse --is-inside-work-tree`。分支名通过 `git check-ref-format --branch`，以 `-` 开头的一律拒绝。
 - `dir` 只做逐层 `readdir`：必须是仓库相对路径，拒绝符号链接目录，每层最多 5000 项，隐藏 `.git`。
 - 切换分支前不 stash、不丢弃改动。冲突时 `git switch` 拒绝，错误原文显示在界面上。
@@ -130,6 +132,14 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 | `branchRename` | `branch` | 把当前分支改成这个名字。需要面板请求头 |
 | `pull` | — | `git pull --ff-only`。需要面板请求头 |
 | `push` | — | `git push`；没有上游时 `git push -u origin <当前分支>`。需要面板请求头 |
+| `remote` | — | 当前 `origin` 地址；没有时为 `null` |
+| `remoteBind` | `url`，`replace=1` 时允许更换已有 origin | `git remote add` 或 `set-url`，然后 `git fetch`，并返回两边历史的关系。需要面板请求头 |
+| `remotePlan` | `branch` | 只判断已经 fetch 过的某个远端分支，不再访问网络 |
+| `integrate` | `branch` | 按关系快进、合并进暂存区，或在本地还没有提交时取下远端历史。需要面板请求头 |
+| `stage` | `path` | `git add -- <路径>`。需要面板请求头 |
+| `commitCreate` | POST JSON `message` | `git commit -m`。日志去掉空白后不能为空。需要面板请求头 |
+| `uncommit` | — | 最近一次提交还不在上游时，`git reset --soft HEAD~1`。需要面板请求头 |
+| `takeSide` | `path`，`side=ours\|theirs` | 合并冲突时保留一边并暂存。需要面板请求头 |
 | `reveal` | `repo` | 在系统文件管理器中打开仓库根目录。需要面板请求头 |
 
 ## 开发
@@ -140,4 +150,4 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 node smoke.mjs <任意 Git 仓库的绝对路径>
 ```
 
-脚本会跑 `gitBash`、`repos`、`status`、`log`、`graph`、`branches`、`diff`、`file`、`dir`、`commit`，以及路径穿越、`switch`、`branchCreate`、`branchRename`、`pull`、`push` 和 `reveal` 的拒绝分支。`client.js` 由 DSH 模块加载器直接加载，没有构建步骤。
+脚本会跑 `gitBash`、`repos`、`status`、`log`、`graph`、`branches`、`diff`、`file`、`dir`、`commit`，以及路径穿越、`switch`、`branchCreate`、`branchRename`、`pull`、`push`、`reveal`、`stage`、`commitCreate`、`uncommit`、`remoteBind`、`integrate` 和 `takeSide` 的拒绝分支。`client.js` 由 DSH 模块加载器直接加载，没有构建步骤。
