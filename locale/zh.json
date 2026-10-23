@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Git Workbench",
+    "description": "Git 工具窗：自动识别 DSH 工作区里的仓库、多项目与分支切换、可拖动分栏、按模块分组的变更树、整个项目目录、文件标签页和右侧 Git Bash 终端。"
+  }
+}

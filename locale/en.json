@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Git Workbench",
+    "description": "A Git tool window: repositories auto-detected from DSH workspaces, project and branch switching, resizable splits, a module-grouped change tree, a lazy full project directory tree, file tabs and a Git Bash terminal column."
+  }
+}

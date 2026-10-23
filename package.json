@@ -1,0 +1,33 @@
+{
+  "name": "dsh-git-workbench",
+  "version": "0.7.1",
+  "private": true,
+  "type": "module",
+  "description": "Git 工具窗：自动识别 DSH 工作区里的仓库、多项目与分支切换、可拖动分栏、按模块分组的变更树、整个项目目录、文件标签页与右侧 Git Bash 终端",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "smoke.mjs",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}

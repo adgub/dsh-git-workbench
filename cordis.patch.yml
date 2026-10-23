@@ -1,0 +1,12 @@
+# dsh-git-workbench — DSH profile bundle patch.
+# Host half: read-only Git API on a prefix route, including DSH workspace discovery.
+# Browser half: the sidebar icon and the `main` panel that renders the tool window.
+- insert:
+    - id: git-workbench
+      name: dsh-git-workbench
+      config:
+        route: /dsh-git-workbench
+        repo: ''
+        historyLimit: 80
+        workspaces: []
+        scanDepth: 1
