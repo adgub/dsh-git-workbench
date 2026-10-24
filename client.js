@@ -1,3 +1,4 @@
+// @part 01-boot.js
 /**
  * dsh-git-workbench — Browser half.
  *
@@ -18,6 +19,9 @@
  * Branch create/rename, pull, push, binding origin, merging, staging, committing,
  * soft-resetting an unpushed commit, and opening the folder run only when a
  * panel button asks the host to do it.
+ *
+ * Source of this bundle is `client/parts/`. After editing a part, run
+ * `node scripts/build-client.mjs` so DSH loads the assembled `client.js`.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-git-workbench',
@@ -69,7 +73,7 @@ window.__ModuleLoader__.load({
 
     /** Created by the plugin apply, consumed by the panel registered there. */
     let terminalBridge = null
-
+// @part 02-styles-shell.js
     const styles = {
       root: {
         display: 'flex',
@@ -323,11 +327,13 @@ window.__ModuleLoader__.load({
       tabStrip: {
         display: 'flex',
         alignItems: 'center',
+        flexWrap: 'wrap',
         gap: 8,
         padding: '8px 10px',
         borderBottom: '1px solid var(--dsw-alias-border-l1)',
         flex: '0 0 auto',
         position: 'relative',
+        minWidth: 0,
         minHeight: 48,
         background: 'var(--dsw-alias-bg-layer-2)',
         zIndex: 3,
@@ -453,6 +459,7 @@ window.__ModuleLoader__.load({
         color: 'var(--dsw-alias-label-secondary)',
       },
       segmentActive: { background: 'var(--dsw-alias-bg-layer-1)', color: 'var(--dsw-alias-label-primary)', fontWeight: 600 },
+// @part 03-styles-chrome.js
       scroll: { flex: '1 1 auto', overflow: 'auto', minHeight: 0, background: 'var(--dsw-alias-bg-layer-1)', fontFamily: monospace, fontSize: 12, lineHeight: 1.55 },
       codeSurface: {
         background: CODE_BG,
@@ -566,6 +573,37 @@ window.__ModuleLoader__.load({
         background: 'var(--dsw-alias-bg-layer-2)',
         border: '1px solid var(--dsw-alias-border-l1)',
         boxShadow: FLOAT_SHADOW,
+      },
+      moreMenu: {
+        position: 'absolute',
+        top: '100%',
+        left: 0,
+        zIndex: 40,
+        minWidth: 168,
+        marginTop: 0,
+        padding: 6,
+        borderRadius: 6,
+        background: 'var(--dsw-alias-bg-layer-2)',
+        border: '1px solid var(--dsw-alias-border-l1)',
+        boxShadow: FLOAT_SHADOW,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+      },
+      moreItem: {
+        boxSizing: 'border-box',
+        width: '100%',
+        minHeight: 32,
+        padding: '6px 10px',
+        fontSize: 12,
+        fontWeight: 600,
+        textAlign: 'left',
+        cursor: 'pointer',
+        color: 'var(--dsw-alias-label-primary)',
+        background: 'transparent',
+        border: '1px solid transparent',
+        borderRadius: 4,
+        whiteSpace: 'nowrap',
       },
       divider: { height: 1, margin: '6px 2px', background: 'var(--dsw-alias-border-l1)' },
       treeRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', cursor: 'pointer', lineHeight: 1.5 },
@@ -727,6 +765,7 @@ window.__ModuleLoader__.load({
         boxShadow: FLOAT_SHADOW,
       },
     }
+// @part 04-helpers.js
 
     function readStore() {
       try {
@@ -1007,7 +1046,7 @@ window.__ModuleLoader__.load({
       }
       return parts.length ? parts : [{ text: ' ', color: '' }]
     }
-
+// @part 05-highlight.js
     function renderHighlighted(line, lang) {
       return highlightParts(line, lang).map((part, index) => h('span', {
         key: index,
@@ -1236,7 +1275,7 @@ window.__ModuleLoader__.load({
         active ? h('div', { style: { ...styles.splitterGrip, background: color } }) : null,
       )
     }
-
+// @part 06-api-terminal.js
     function apiUrl(params) {
       const query = typeof params === 'string' ? params : params.toString()
       return `${apiRoute}/api?${query}`
@@ -1299,7 +1338,8 @@ window.__ModuleLoader__.load({
     /**
      * Start Git Bash inside the shell the terminal controller discovered.
      * HISTCONTROL keeps the palette command (sent next, with a leading space)
-     * out of the shell history.
+     * out of the shell history. GIT_OPTIONAL_LOCKS stops the bash prompt from
+     * taking the index lock every time it asks git for the branch name.
      */
     function buildGitBashLaunch(shellPath, repo, gitBash) {
       if (!gitBash) return ''
@@ -1307,12 +1347,12 @@ window.__ModuleLoader__.load({
       const winRepo = String(repo || '').replace(/\//g, '\\')
       const posixRepo = toBashPath(repo)
       if (/cmd\.exe$/i.test(shell)) {
-        return `set "HISTCONTROL=ignorespace" && ${repo ? `cd /d "${winRepo}" && ` : ''}"${gitBash}" --login -i\r`
+        return `set "GIT_OPTIONAL_LOCKS=0" && set "HISTCONTROL=ignorespace" && ${repo ? `cd /d "${winRepo}" && ` : ''}"${gitBash}" --login -i\r`
       }
       if (/(pwsh|powershell)(\.exe)?$/i.test(shell)) {
-        return `$env:HISTCONTROL='ignorespace'; ${repo ? `Set-Location -LiteralPath '${winRepo.replace(/'/g, "''")}'; ` : ''}& '${gitBash}' --login -i\r`
+        return `$env:GIT_OPTIONAL_LOCKS='0'; $env:HISTCONTROL='ignorespace'; ${repo ? `Set-Location -LiteralPath '${winRepo.replace(/'/g, "''")}'; ` : ''}& '${gitBash}' --login -i\r`
       }
-      return `export HISTCONTROL=ignorespace; ${repo ? `cd "${posixRepo}"; ` : ''}"${toBashPath(gitBash)}" --login -i\r`
+      return `export GIT_OPTIONAL_LOCKS=0 HISTCONTROL=ignorespace; ${repo ? `cd "${posixRepo}"; ` : ''}"${toBashPath(gitBash)}" --login -i\r`
     }
 
     /**
@@ -1363,6 +1403,9 @@ window.__ModuleLoader__.load({
       let component = null
       const componentListeners = new Set()
       let gitBashPromise = null
+      // Bumped when this panel drops its PTY, so a retain timer that already
+      // fired cannot put the closed terminal back and keep holding the project.
+      let holdGeneration = 0
 
       const notifyComponent = () => {
         for (const listener of componentListeners) listener()
@@ -1507,6 +1550,7 @@ window.__ModuleLoader__.load({
          * Keep this window's terminal processes alive without dropping the tabs
          * the DSH sidebar owns: retainTabs is a single global list.
          */
+        currentHoldGeneration: () => holdGeneration,
         holdTerminal: (sessionId, key, contentId) => {
           if (!webTerminals || typeof webTerminals.retainTabs !== 'function') return
           const current = Array.isArray(webTerminals.openTabs) ? webTerminals.openTabs : []
@@ -1516,6 +1560,14 @@ window.__ModuleLoader__.load({
             ...others,
             { sessionId, tabId: key, contentId, kind: 'git-bash' },
           ])
+        },
+        /** Drop our retained PTY so a hidden terminal cannot keep the project directory open. */
+        releaseTerminal: (sessionId) => {
+          holdGeneration += 1
+          if (!webTerminals || typeof webTerminals.retainTabs !== 'function') return
+          const current = Array.isArray(webTerminals.openTabs) ? webTerminals.openTabs : []
+          webTerminals.retainTabs(current.filter((tab) => tab
+            && !(tab.sessionId === sessionId && String(tab.contentId || '').startsWith(TERMINAL_CONTENT_ID))))
         },
         closeView: (sessionId, key, contentId) => {
           if (!webTerminals) return
@@ -1541,7 +1593,7 @@ window.__ModuleLoader__.load({
           : this.props.children
       }
     }
-
+// @part 07-terminal-pane.js
     function terminalFailureDetail(value) {
       if (!value || typeof value !== 'object') return ''
       const info = value.info && typeof value.info === 'object' ? value.info : {}
@@ -1617,8 +1669,15 @@ window.__ModuleLoader__.load({
 
       React.useEffect(() => {
         if (!servicesReady || !sessionId || !shellState || !shellState.picked) {
-          viewRef.current = null
-          setView(null)
+          const orphan = viewRef.current
+          if (orphan) {
+            const orphanId = orphan.view && orphan.view.id ? String(orphan.view.id) : ''
+            forgetStartedTerminal(orphanId)
+            bridge.releaseTerminal(orphan.sessionId)
+            bridge.closeView(orphan.sessionId, orphan.key, orphan.contentId)
+            viewRef.current = null
+            setView(null)
+          }
           return undefined
         }
         const previous = viewRef.current
@@ -1628,6 +1687,8 @@ window.__ModuleLoader__.load({
         if (previous) {
           // Close the old identity before creating the new one; otherwise the
           // content binding would point the new view at a dead terminal.
+          const previousId = previous.view && previous.view.id ? String(previous.view.id) : ''
+          forgetStartedTerminal(previousId)
           bridge.closeView(previous.sessionId, previous.key, previous.contentId)
           viewRef.current = null
         }
@@ -1642,6 +1703,19 @@ window.__ModuleLoader__.load({
         }
         return undefined
       }, [servicesReady, sessionId, shellState, viewKey, contentId, bridge])
+
+      // Collapsing the terminal or leaving the Git panel unmounts this pane.
+      // End the PTY here; otherwise retainTabs keeps bash in the project and
+      // Windows will not release the directory.
+      React.useEffect(() => () => {
+        const current = viewRef.current
+        if (!current) return
+        const id = current.view && current.view.id ? String(current.view.id) : ''
+        forgetStartedTerminal(id)
+        bridge.releaseTerminal(current.sessionId)
+        bridge.closeView(current.sessionId, current.key, current.contentId)
+        viewRef.current = null
+      }, [bridge])
 
       const subscribeState = React.useCallback((listener) => (view ? view.state.subscribe(listener) : () => {}), [view])
       const getStateSnapshot = React.useCallback(() => (view ? view.state.getSnapshot() : null), [view])
@@ -1744,10 +1818,13 @@ window.__ModuleLoader__.load({
 
       // retainTabs is one global list shared with DSH's own terminal tabs; when
       // that list is rewritten our process could lose its window hold, so put
-      // our entry back without touching the other tabs.
+      // our entry back without touching the other tabs. A release bumps the
+      // generation so this timer cannot resurrect a terminal we just closed.
       React.useEffect(() => {
         if (!view) return undefined
+        const generation = bridge.currentHoldGeneration()
         const timer = window.setInterval(() => {
+          if (bridge.currentHoldGeneration() !== generation) return
           const current = viewRef.current
           if (current) bridge.holdTerminal(current.sessionId, current.key, current.contentId)
         }, 4000)
@@ -1855,7 +1932,7 @@ window.__ModuleLoader__.load({
         h('div', { style: styles.terminalBody, ref: paneRef }, body),
       )
     }
-
+// @part 08-lists.js
     function relationText(report) {
       const branch = report && report.branch ? report.branch : '默认分支'
       if (!report) return ''
@@ -1873,6 +1950,12 @@ window.__ModuleLoader__.load({
       return '已读取远端。'
     }
 
+    function checkedOutBranch(status) {
+      const name = status && status.branch
+      if (!name || name === 'HEAD') return ''
+      return name
+    }
+
     function integrateLabel(relation) {
       if (relation === 'ff') return '快进合并'
       if (relation === 'local-unborn') return '取下远端历史'
@@ -1887,24 +1970,27 @@ window.__ModuleLoader__.load({
       if (actions && entry.kind === 'conflict') {
         action = h('span', { style: styles.fileActions, onClick: (event) => event.stopPropagation() },
           h('button', {
+            type: 'button',
             style: styles.rowButton,
             disabled: busy,
             title: '保留当前分支上的这一边',
-            onClick: () => actions.onTakeSide(entry, 'ours'),
+            onClick: (event) => { event.preventDefault(); actions.onTakeSide(entry, 'ours') },
           }, '用本地'),
           h('button', {
+            type: 'button',
             style: styles.rowButton,
             disabled: busy,
             title: '保留远端的这一边',
-            onClick: () => actions.onTakeSide(entry, 'theirs'),
+            onClick: (event) => { event.preventDefault(); actions.onTakeSide(entry, 'theirs') },
           }, '用远端'),
         )
       } else if (actions && (entry.unstaged || entry.untracked)) {
         action = h('button', {
+          type: 'button',
           style: styles.rowButton,
           disabled: busy,
-          title: 'git add 这个文件',
-          onClick: (event) => { event.stopPropagation(); actions.onStage(entry) },
+          title: actions.headBranch ? `git add 这个文件，只影响分支 ${actions.headBranch}` : 'git add 这个文件',
+          onClick: (event) => { event.preventDefault(); event.stopPropagation(); actions.onStage(entry) },
         }, actions.stageBusy === entry.path ? '暂存中…' : 'add')
       } else if (actions && entry.staged) {
         action = h('span', { style: styles.count }, '已暂存')
@@ -1933,11 +2019,11 @@ window.__ModuleLoader__.load({
       files, tree, collapsed, toggleDir, openDiffTab, treeMode, onTreeMode,
       stagedCount, unstagedCount, untrackedCount, moduleNames,
       commitMessage, onCommitMessage, onCommit, commitBusy, commitError, conflictCount, merging,
-      onStage, onTakeSide, stageBusy, sideBusy,
+      onStage, onTakeSide, stageBusy, sideBusy, headBranch,
     }) {
-      const actions = { onStage, onTakeSide, stageBusy, sideBusy }
+      const actions = headBranch ? { onStage, onTakeSide, stageBusy, sideBusy, headBranch } : null
       const messageReady = !!(commitMessage && String(commitMessage).trim())
-      const canCommit = messageReady && stagedCount > 0 && !conflictCount && !commitBusy
+      const canCommit = !!headBranch && messageReady && stagedCount > 0 && !conflictCount && !commitBusy
       const rows = []
       const renderNode = (node, depth) => {
         for (const dir of dirsOf(node)) {
@@ -1975,7 +2061,8 @@ window.__ModuleLoader__.load({
           ...styles.buttonQuiet,
           ...(treeMode === mode ? { background: 'var(--dsw-alias-bg-layer-2)', color: 'var(--dsw-alias-label-primary)' } : {}),
         },
-        onClick: () => onTreeMode(mode),
+        type: 'button',
+        onClick: (event) => { event.preventDefault(); onTreeMode(mode) },
       }, label)
       return h('div', null,
         h('div', { style: styles.treeSummary },
@@ -1988,34 +2075,38 @@ window.__ModuleLoader__.load({
             modeButton('files', '只显示文件'),
           ),
           statusLegend(),
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 } },
-            h('textarea', {
-              style: styles.commitBox,
-              value: commitMessage || '',
-              placeholder: merging ? '填写日志，完成这次合并' : '提交日志（必填）',
-              spellCheck: false,
-              onChange: (event) => onCommitMessage(event.target.value),
-              onKeyDown: (event) => {
-                if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && canCommit) onCommit()
-              },
-            }),
-            h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-              h('button', {
-                style: { ...styles.button, opacity: canCommit ? 1 : 0.45 },
-                disabled: !canCommit,
-                title: !messageReady
-                  ? '先填写提交日志'
-                  : (conflictCount ? '先解决冲突' : (stagedCount === 0 ? '先 add 要提交的文件' : '提交已暂存的文件')),
-                onClick: onCommit,
-              }, commitBusy ? '提交中…' : '提交'),
-              h('span', null, conflictCount
-                ? `${conflictCount} 个冲突待选择，解决后才能提交`
-                : (stagedCount === 0 ? '先 add 文件。日志为空不能提交。' : '只提交已 add 的文件。日志为空不能提交。')),
-            ),
-            commitError
-              ? h('div', { style: { color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'normal' } }, commitError)
-              : null,
-          ),
+          headBranch
+            ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 } },
+                h('div', null, `只提交到当前分支 ${headBranch}`),
+                h('textarea', {
+                  style: styles.commitBox,
+                  value: commitMessage || '',
+                  placeholder: merging ? `填写日志，在 ${headBranch} 上完成这次合并` : `提交到 ${headBranch}（日志必填）`,
+                  spellCheck: false,
+                  onChange: (event) => onCommitMessage(event.target.value),
+                  onKeyDown: (event) => {
+                    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && canCommit) onCommit()
+                  },
+                }),
+                h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                  h('button', {
+                    type: 'button',
+                    style: { ...styles.button, opacity: canCommit ? 1 : 0.45 },
+                    disabled: !canCommit,
+                    title: !messageReady
+                      ? '先填写提交日志'
+                      : (conflictCount ? '先解决冲突' : (stagedCount === 0 ? '先 add 要提交的文件' : `提交到 ${headBranch}`)),
+                    onClick: (event) => { event.preventDefault(); onCommit() },
+                  }, commitBusy ? '提交中…' : '提交'),
+                  h('span', null, conflictCount
+                    ? `${conflictCount} 个冲突待选择，解决后才能提交`
+                    : (stagedCount === 0 ? '先 add 文件。日志为空不能提交。' : `只提交已 add 的文件到 ${headBranch}。`)),
+                ),
+                commitError
+                  ? h('div', { style: { color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'normal' } }, commitError)
+                  : null,
+              )
+            : h('div', { style: { marginTop: 8 } }, '当前不在分支上。先切换到一个分支，再暂存和提交。'),
         ),
         rows,
       )
@@ -2132,7 +2223,7 @@ window.__ModuleLoader__.load({
         rows.length ? rows : h('div', { style: styles.empty }, '项目目录是空的。'),
       )
     }
-
+// @part 09-panel-state.js
     function GitWorkbenchPanel() {
       const stored = React.useMemo(() => {
         const current = readStore()
@@ -2191,6 +2282,7 @@ window.__ModuleLoader__.load({
       const [origin, setOrigin] = React.useState(null)
       const [bindUrl, setBindUrl] = React.useState('')
       const [bindOpen, setBindOpen] = React.useState(false)
+      const [moreOpen, setMoreOpen] = React.useState(false)
       const [bindBusy, setBindBusy] = React.useState(false)
       const [bindReport, setBindReport] = React.useState(null)
       const [integrateBusy, setIntegrateBusy] = React.useState(false)
@@ -2208,7 +2300,7 @@ window.__ModuleLoader__.load({
           ? Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(width)))
           : SIDEBAR_DEFAULT_WIDTH
       })
-      const [terminalOpen, setTerminalOpen] = React.useState(() => stored.terminalOpen !== false)
+      const [terminalOpen, setTerminalOpen] = React.useState(() => stored.terminalOpen === true)
       const [terminalWidth, setTerminalWidth] = React.useState(() => {
         const width = Number(stored.terminalWidth)
         return Number.isFinite(width)
@@ -2585,7 +2677,7 @@ window.__ModuleLoader__.load({
           setBranchBusy('')
         }
       }, [repo, branchBusy, call, flash, refresh, loadRepos, resetDirectories])
-
+// @part 10-panel-actions.js
       const chooseTreeMode = React.useCallback((mode) => {
         const next = mode === 'files' ? 'files' : 'modules'
         setTreeMode(next)
@@ -2729,26 +2821,28 @@ window.__ModuleLoader__.load({
       }, [repo, bindReport, integrateBusy, call, flash, refresh])
 
       const stageFile = React.useCallback(async (entry) => {
-        if (!repo || !entry || !entry.path || stageBusy) return
+        const branch = checkedOutBranch(status)
+        if (!repo || !branch || !entry || !entry.path || stageBusy) return
         setStageBusy(entry.path)
         setCommitError('')
         try {
-          await call('stage', { path: entry.path })
-          flash(`已暂存 ${entry.path}`)
+          await call('stage', { path: entry.path, branch })
+          flash(`已暂存 ${entry.path}（分支 ${branch}）`)
           await refresh(false)
         } catch (failure) {
           setCommitError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能 add。'))
         } finally {
           setStageBusy('')
         }
-      }, [repo, stageBusy, call, flash, refresh])
+      }, [repo, status, stageBusy, call, flash, refresh])
 
       const takeSide = React.useCallback(async (entry, side) => {
-        if (!repo || !entry || !entry.path || sideBusy) return
+        const branch = checkedOutBranch(status)
+        if (!repo || !branch || !entry || !entry.path || sideBusy) return
         setSideBusy(entry.path)
         setCommitError('')
         try {
-          await call('takeSide', { path: entry.path, side })
+          await call('takeSide', { path: entry.path, side, branch })
           flash(side === 'ours' ? `已保留本地的 ${entry.path}` : `已保留远端的 ${entry.path}`)
           await refresh(false)
         } catch (failure) {
@@ -2756,18 +2850,19 @@ window.__ModuleLoader__.load({
         } finally {
           setSideBusy('')
         }
-      }, [repo, sideBusy, call, flash, refresh])
+      }, [repo, status, sideBusy, call, flash, refresh])
 
       const createCommit = React.useCallback(async () => {
         const message = commitMessage.trim()
-        if (!repo || !message || commitBusy) return
+        const branch = checkedOutBranch(status)
+        if (!repo || !branch || !message || commitBusy) return
         setCommitBusy(true)
         setCommitError('')
         try {
-          await callPost('commitCreate', { message })
+          await callPost('commitCreate', { message, branch })
           setCommitMessage('')
           setBindReport(null)
-          flash('已提交')
+          flash(`已提交到 ${branch}`)
           await refresh(false)
           loadRepos(true)
         } catch (failure) {
@@ -2775,14 +2870,15 @@ window.__ModuleLoader__.load({
         } finally {
           setCommitBusy(false)
         }
-      }, [repo, commitMessage, commitBusy, callPost, flash, refresh, loadRepos])
+      }, [repo, status, commitMessage, commitBusy, callPost, flash, refresh, loadRepos])
 
       const uncommit = React.useCallback(async () => {
-        if (!repo || syncBusy || branchBusy) return
+        const branch = checkedOutBranch(status)
+        if (!repo || !branch || syncBusy || branchBusy) return
         setSyncBusy('uncommit')
         setBranchError('')
         try {
-          const result = await call('uncommit')
+          const result = await call('uncommit', { branch })
           flash(result && result.unpushed
             ? '已回退最近一次提交。仓库还没有上游，这次提交只在本地，改动仍在暂存区。'
             : '已回退最近一次未推送的提交，改动仍在暂存区。')
@@ -2794,7 +2890,7 @@ window.__ModuleLoader__.load({
         } finally {
           setSyncBusy('')
         }
-      }, [repo, syncBusy, branchBusy, call, flash, refresh, loadRepos])
+      }, [repo, status, syncBusy, branchBusy, call, flash, refresh, loadRepos])
 
       const openLocation = async (target) => {
         try {
@@ -2930,7 +3026,7 @@ window.__ModuleLoader__.load({
       const openCommitTab = React.useCallback((commit) => {
         openTab({ id: 'commit:' + commit.sha, kind: 'commit', rev: commit.sha, short: commit.short, subject: commit.subject })
       }, [openTab])
-
+// @part 11-panel-lists.js
       const files = React.useMemo(() => (status && Array.isArray(status.files) ? status.files.filter((item) => !item.ignored) : []), [status])
       const tree = React.useMemo(() => buildTree(files), [files])
       const stagedCount = files.filter((item) => item.staged).length
@@ -3108,6 +3204,7 @@ window.__ModuleLoader__.load({
             commitMessage, onCommitMessage: (value) => { setCommitMessage(value); setCommitError('') },
             onCommit: createCommit, commitBusy, commitError, conflictCount, merging: !!(status && status.merging),
             onStage: stageFile, onTakeSide: takeSide, stageBusy, sideBusy,
+            headBranch: checkedOutBranch(status),
           })
         }
       } else if (tab === 'directory') {
@@ -3148,7 +3245,7 @@ window.__ModuleLoader__.load({
             : h('div', { style: styles.empty }, '没有提交记录。')
       } else if (tab === 'log') {
         listContent = commits.length
-          ? commits.map((commit, index) => h('div', {
+          ? commits.map((commit) => h('div', {
               key: commit.sha,
               className: 'dsh-git-hit',
               style: { ...styles.logRow, ...(activeTab && activeTab.kind === 'commit' && activeTab.rev === commit.sha ? styles.repoRowActive : {}) },
@@ -3158,14 +3255,6 @@ window.__ModuleLoader__.load({
               h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-brand-primary)' } }, commit.short),
               h('span', { style: { flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, commit.subject),
               h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, commit.date),
-              index === 0
-                ? h('button', {
-                    style: styles.rowButton,
-                    disabled: !canUncommit || !!syncBusy || !!branchBusy,
-                    title: '撤销最近一次还没推送的提交。改动留在暂存区。已经推送的提交不能回退。',
-                    onClick: (event) => { event.stopPropagation(); uncommit() },
-                  }, syncBusy === 'uncommit' ? '回退中…' : '回退')
-                : null,
             ))
           : h('div', { style: styles.empty }, unborn ? '这个仓库还没有任何提交。' : '没有提交记录。')
       } else {
@@ -3343,6 +3432,7 @@ window.__ModuleLoader__.load({
             ),
           )
         : null
+// @part 12-panel-chrome.js
 
       const repoButton = h('div', { style: { position: 'relative', flex: '0 0 auto' } },
         h('div', {
@@ -3437,36 +3527,61 @@ window.__ModuleLoader__.load({
 
       const syncButtons = h(React.Fragment, null,
         h('button', {
+          type: 'button',
           style: styles.button,
           disabled: !repo || !!syncBusy || !!branchBusy,
           title: 'git pull --ff-only。不能快进时会显示 git 的原因，不会自动合并。',
-          onClick: () => syncBranch('pull'),
+          onClick: (event) => { event.preventDefault(); syncBranch('pull') },
         }, syncBusy === 'pull' ? '拉取中…' : `拉取${status && status.behind ? ' ↓' + status.behind : ''}`),
         h('button', {
+          type: 'button',
           style: styles.button,
           disabled: !repo || !!syncBusy || !!branchBusy,
           title: 'git push。没有上游时推送到 origin 并设置上游。不会使用 --force。',
-          onClick: () => syncBranch('push'),
+          onClick: (event) => { event.preventDefault(); syncBranch('push') },
         }, syncBusy === 'push' ? '推送中…' : `推送${status && status.ahead ? ' ↑' + status.ahead : ''}`),
-        h('button', {
-          style: styles.button,
-          disabled: !canUncommit || !!syncBusy || !!branchBusy,
-          title: '撤销最近一次还没推送的提交（git reset --soft HEAD~1）。改动留在暂存区。已经推送的提交不能回退。',
-          onClick: uncommit,
-        }, syncBusy === 'uncommit' ? '回退中…' : '回退'),
-        h('button', {
-          style: styles.button,
-          disabled: !repo || !!bindBusy,
-          title: origin ? `已绑定 origin：${origin}` : '粘贴远端仓库地址，记为 origin 并拉取',
-          onClick: () => setBindOpen((open) => !open),
-        }, origin ? '更换仓库' : '绑定仓库'),
       )
 
       const refreshButton = h('button', {
+        type: 'button',
         style: styles.button,
-        onClick: () => refresh(true),
+        onClick: (event) => { event.preventDefault(); refresh(true) },
         disabled: loading || !repo,
       }, loading ? '刷新中…' : '刷新')
+
+      const moreMenu = h('div', {
+        style: { position: 'relative', flex: '0 0 auto', paddingBottom: 8, marginBottom: -8 },
+        onMouseEnter: () => setMoreOpen(true),
+        onMouseLeave: () => setMoreOpen(false),
+      },
+        h('button', {
+          type: 'button',
+          style: styles.button,
+          disabled: !repo,
+          title: '回退、绑定或更换仓库',
+          onClick: (event) => { event.preventDefault(); setMoreOpen((open) => !open) },
+        }, '更多'),
+        moreOpen ? h('div', { style: styles.moreMenu },
+          h('button', {
+            type: 'button',
+            className: 'dsh-git-hit',
+            style: styles.moreItem,
+            disabled: !canUncommit || !!syncBusy || !!branchBusy,
+            title: checkedOutBranch(status)
+              ? `只回退当前分支 ${checkedOutBranch(status)} 上还没推送的最新提交`
+              : '先切换到一个分支',
+            onClick: (event) => { event.preventDefault(); setMoreOpen(false); uncommit() },
+          }, syncBusy === 'uncommit' ? '回退中…' : '回退'),
+          h('button', {
+            type: 'button',
+            className: 'dsh-git-hit',
+            style: styles.moreItem,
+            disabled: !repo || !!bindBusy,
+            title: origin ? `已绑定 origin：${origin}` : '粘贴远端仓库地址，记为 origin 并拉取',
+            onClick: (event) => { event.preventDefault(); setMoreOpen(false); setBindOpen(true) },
+          }, origin ? '更换仓库' : '绑定仓库'),
+        ) : null,
+      )
 
       const searchRow = (item, index) => h('div', {
         key: item.key,
@@ -3537,14 +3652,16 @@ window.__ModuleLoader__.load({
         repoButton,
         branchChip,
         syncButtons,
+        moreMenu,
         refreshButton,
         h('button', {
+          type: 'button',
           style: {
             ...styles.button,
             borderColor: terminalOpen ? repoColor : 'var(--dsw-alias-border-l1)',
             color: terminalOpen ? repoColor : 'var(--dsw-alias-label-primary)',
           },
-          onClick: toggleTerminal,
+          onClick: (event) => { event.preventDefault(); toggleTerminal() },
           title: terminalOpen
             ? '收起最右侧的 Git Bash 终端；进程会保留'
             : '在最右侧打开 Git Bash 终端（使用电脑上的 Git Bash）',
@@ -3572,7 +3689,7 @@ window.__ModuleLoader__.load({
           )),
         ),
       )
-
+// @part 13-panel-detail.js
       function activeTabPath() {
         if (!activeTab) return repo || ''
         if (activeTab.kind === 'commit') return `${repo} · commit ${String(activeTab.rev || '').slice(0, 8)}`
@@ -3678,7 +3795,14 @@ window.__ModuleLoader__.load({
           )
         : null
 
-      return h('div', { style: styles.root },
+      return h('div', {
+        style: styles.root,
+        onClickCapture: (event) => {
+          const node = event.target && event.target.closest ? event.target.closest('button') : null
+          if (node) event.preventDefault()
+        },
+        onClick: (event) => event.stopPropagation(),
+      },
         h('style', null, '.dsh-git-hit:hover{background:var(--dsw-alias-bg-layer-2)}.dsh-git-hit-pop:hover{background:var(--dsw-alias-bg-layer-1)}'),
         tabsBar,
         h('div', { style: styles.pathBar },
@@ -3701,7 +3825,7 @@ window.__ModuleLoader__.load({
         !error && reposError && !oldHost ? h('div', { style: styles.banner }, reposError) : null,
         !error && oldHost ? h('div', { style: styles.banner }, '宿主半边还是旧版本（还没有 /repos 接口）：退出 DSH 再启动后，自动识别工作区项目才会生效。现在可以先用「选取项目 → 手动添加仓库」打开项目。') : null,
         branchError ? h('div', { style: { ...styles.banner, cursor: 'pointer' }, title: '点击关闭', onClick: () => setBranchError('') }, branchError) : null,
-        repo && (bindOpen || origin === '' || bindReport)
+        repo && (bindOpen || bindReport)
           ? h('div', { style: styles.infoBanner },
               origin
                 ? h('div', null, `当前 origin：${origin}`)
@@ -3795,6 +3919,7 @@ window.__ModuleLoader__.load({
           : null,
       )
     }
+// @part 14-register.js
 
     function GitWorkbenchIcon(props) {
       const size = (props && props.size) || 16

@@ -13,7 +13,10 @@
   },
   "files": [
     "index.js",
+    "host",
     "client.js",
+    "client",
+    "scripts/build-client.mjs",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",

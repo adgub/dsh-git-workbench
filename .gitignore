@@ -35,3 +35,4 @@ desktop.ini
 
 # DSH 本地数据
 .dsh/
+.cursor/
