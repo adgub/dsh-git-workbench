@@ -268,26 +268,28 @@
             ))
           : h('div', { style: styles.empty }, unborn ? '这个仓库还没有任何提交。' : '没有提交记录。')
       } else {
+        const headName = checkedOutBranch(status)
+        const rowIsCurrent = (branch) => headName ? branch.name === headName : !!branch.current
         const branchRows = branches.map((branch) => h('div', {
           key: branch.name,
-          className: branch.current ? undefined : 'dsh-git-hit',
-          style: { ...styles.branchRow, cursor: branch.current ? 'default' : 'pointer' },
-          onClick: branch.current ? undefined : () => switchBranch(branch.name),
+          className: rowIsCurrent(branch) ? undefined : 'dsh-git-hit',
+          style: { ...styles.branchRow, cursor: rowIsCurrent(branch) ? 'default' : 'pointer' },
+          onClick: rowIsCurrent(branch) ? undefined : () => switchBranch(branch.name),
           title: branch.upstream ? `${branch.name} → ${branch.upstream}` : branch.name,
         },
-          h('span', { style: { flex: '0 0 auto', width: 14, color: 'var(--dsw-alias-state-success-primary)' } }, branch.current ? '●' : ''),
-          h('span', { style: { flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
-          h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
-          branch.current
+          h('span', { style: { flex: '0 0 auto', width: 14, color: 'var(--dsw-alias-state-success-primary)' } }, rowIsCurrent(branch) ? '●' : ''),
+          rowIsCurrent(branch)
             ? null
             : h('button', {
                 type: 'button',
                 style: { ...styles.rowButton, flex: '0 0 auto' },
-                title: `把 ${branch.name} 合并进当前分支`,
+                title: `把 ${branch.name} 合并进 ${headName || '当前分支'}`,
                 onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
               }, '合并'),
-          h('span', { style: { flex: '0 0 auto', fontSize: 12, color: branch.current ? 'var(--dsw-alias-label-secondary)' : 'var(--dsw-alias-brand-primary)' } },
-            branchBusy === branch.name ? '切换中…' : (branch.current ? '当前' : '切换')),
+          h('span', { style: { flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
+          h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
+          h('span', { style: { flex: '0 0 auto', fontSize: 12, color: rowIsCurrent(branch) ? 'var(--dsw-alias-label-secondary)' : 'var(--dsw-alias-brand-primary)' } },
+            branchBusy === branch.name ? '切换中…' : (rowIsCurrent(branch) ? '当前' : '切换')),
         ))
         if (branches.length === 0 && unborn && status && status.branch) {
           branchRows.push(h('div', { key: 'unborn', style: styles.branchRow },

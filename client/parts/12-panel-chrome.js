@@ -20,6 +20,10 @@
         repoMenu,
       )
 
+      const headBranch = checkedOutBranch(status)
+      const otherBranches = branches.filter((branch) => branch.name && branch.name !== headBranch)
+      const rowIsCurrent = (branch) => headBranch ? branch.name === headBranch : !!branch.current
+
       const branchChip = h('div', { style: { position: 'relative', flex: '0 0 auto' } },
         h('button', {
           style: styles.branchButton,
@@ -37,6 +41,23 @@
         branchMenuOpen ? h(React.Fragment, null,
           h('div', { style: styles.overlay, onClick: () => setBranchMenuOpen(false) }),
           h('div', { style: styles.branchMenu },
+            otherBranches.length
+              ? h(React.Fragment, null,
+                  h('div', { style: styles.popHead }, `合并进 ${headBranch || '当前分支'}`),
+                  otherBranches.map((branch) => h('button', {
+                    key: `merge-${branch.name}`,
+                    type: 'button',
+                    className: 'dsh-git-hit',
+                    style: { ...styles.moreItem, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+                    title: `把 ${branch.name} 合并进 ${headBranch || '当前分支'}`,
+                    onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
+                  },
+                    h('span', { style: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
+                    h('span', { style: { flex: '0 0 auto' } }, '合并'),
+                  )),
+                  h('div', { style: styles.divider }),
+                )
+              : null,
             h('div', { style: styles.popHead }, `本地分支 · ${branches.length}`),
             files.length
               ? h('div', { style: { padding: '4px 8px', fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-state-warn-primary)' } },
@@ -48,13 +69,12 @@
               : branches.map((branch) => h('div', {
                   key: branch.name,
                   className: 'dsh-git-hit-pop',
-                  style: { ...styles.pickerRow, ...(branch.current ? styles.repoRowActive : {}) },
-                  onClick: () => { if (!branch.current) switchBranch(branch.name) },
+                  style: { ...styles.pickerRow, ...(rowIsCurrent(branch) ? styles.repoRowActive : {}) },
+                  onClick: () => { if (!rowIsCurrent(branch)) switchBranch(branch.name) },
                   title: branch.upstream ? `${branch.name} → ${branch.upstream}` : branch.name,
                 },
-                  h('span', { style: { width: 12, flex: '0 0 auto', color: 'var(--dsw-alias-state-success-primary)' } }, branch.current ? '●' : ''),
-                  h('span', { style: { flex: '1 1 auto', minWidth: 0, fontWeight: branch.current ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
-                  branch.current
+                  h('span', { style: { width: 12, flex: '0 0 auto', color: 'var(--dsw-alias-state-success-primary)' } }, rowIsCurrent(branch) ? '●' : ''),
+                  rowIsCurrent(branch)
                     ? null
                     : h('button', {
                         type: 'button',
@@ -62,9 +82,10 @@
                         title: `把 ${branch.name} 合并进当前分支`,
                         onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
                       }, '合并'),
+                  h('span', { style: { flex: '1 1 auto', minWidth: 0, fontWeight: rowIsCurrent(branch) ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
                   branchBusy === branch.name
                     ? h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-brand-primary)' } }, '切换中…')
-                    : h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.current ? '当前' : '点击切换'),
+                    : h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, rowIsCurrent(branch) ? '当前' : '点击切换'),
                   h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
                 )),
             h('div', { style: styles.divider }),
@@ -99,9 +120,7 @@
         ) : null,
       )
 
-      const headBranch = checkedOutBranch(status)
-      const otherBranches = branches.filter((branch) => branch.name && branch.name !== headBranch)
-      const mergePick = h('div', { style: { position: 'relative', flex: '0 0 auto' } },
+      const mergePick = h('div', { style: { position: 'relative', flex: '0 0 auto', zIndex: 32 } },
         h('button', {
           type: 'button',
           style: styles.button,
