@@ -180,24 +180,6 @@
       return dots
     }
 
-    /** The colour key the tree shows under its summary. */
-    function statusLegend() {
-      const items = [
-        ['??', '未跟踪'],
-        ['A', '新增'],
-        ['M', '修改'],
-        ['D', '删除'],
-        ['R', '重命名'],
-        ['U', '冲突'],
-      ]
-      return h('div', { style: styles.legend },
-        items.map(([code, label]) => h('span', { key: code, style: styles.legendItem },
-          h('span', { style: { ...styles.legendDot, background: colorForStatus(code) } }),
-          label,
-        )),
-      )
-    }
-
     const SOURCE_KEYWORDS = new Set(
       'const let var function return if else for while class import export from async await new this try catch throw switch case break continue default typeof instanceof of in null undefined true false interface type extends implements package func struct map range defer select go chan public private protected static void int string bool elif fi then do done esac'.split(' '),
     )

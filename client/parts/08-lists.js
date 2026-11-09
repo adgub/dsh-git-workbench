@@ -60,7 +60,7 @@
       })
     }
 
-    function renderChangeFile(entry, padLeft, openDiffTab, actions, pick) {
+    function renderChangeFile(entry, padLeft, openDiffTab, actions, pick, showPath) {
       const tone = colorForStatus(entry.xy)
       const deleted = isDeleted(entry)
       const busy = !!(actions && actions.sideBusy === entry.path)
@@ -109,7 +109,9 @@
             textDecoration: deleted ? 'line-through' : 'none',
           },
         }, baseName(entry.path)),
-        h('span', { style: { ...styles.count, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 400 } }, entry.path.includes('/') ? entry.path.slice(0, entry.path.lastIndexOf('/')) : ''),
+        showPath && entry.path.includes('/')
+          ? h('span', { style: { ...styles.count, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 400 } }, entry.path.slice(0, entry.path.lastIndexOf('/')))
+          : null,
         action,
       )
     }
@@ -118,7 +120,7 @@
       const pick = { picked, onToggle, prefix, title }
       if (treeMode === 'files') {
         const flat = files.slice().sort((a, b) => String(a.path).localeCompare(String(b.path), 'zh-Hans-CN'))
-        return flat.map((entry) => renderChangeFile(entry, 12, openDiffTab, null, pick))
+        return flat.map((entry) => renderChangeFile(entry, 12, openDiffTab, null, pick, true))
       }
       const rows = []
       const renderNode = (node, depth) => {
@@ -144,7 +146,7 @@
           if (!isCollapsed) renderNode(dir, depth + 1)
         }
         for (const entry of node.files) {
-          rows.push(renderChangeFile(entry, 8 + depth * 14 + 12, openDiffTab, null, pick))
+          rows.push(renderChangeFile(entry, 8 + depth * 14 + 12, openDiffTab, null, pick, false))
         }
       }
       renderNode(buildTree(files), 0)
@@ -153,7 +155,7 @@
 
     function renderChangeList({
       files, collapsed, toggleDir, openDiffTab, treeMode, onTreeMode,
-      stagedCount, unstagedCount, untrackedCount, moduleNames,
+      stagedCount, unstagedCount, untrackedCount,
       commitMessage, onCommitMessage, onCommit, commitBusy, commitError, conflictCount, merging,
       onStagePaths, onTakeSide, stageBusy, sideBusy, headBranch, onOpenMerge,
       pickedAdd, pickedCommit, onToggleAdd, onToggleCommit, onToggleAddMany, onToggleCommitMany,
@@ -171,125 +173,118 @@
       const canCommit = !!headBranch && messageReady && !conflictCount && !commitBusy && (
         merging ? (commitPaths.length === 0 || allCommitPicked) : pickedCommitPaths.length > 0
       )
+      const compactButton = { minHeight: 24, padding: '2px 8px' }
       const modeButton = (mode, label) => h('button', {
         key: mode,
         style: {
           ...styles.buttonQuiet,
+          ...compactButton,
           ...(treeMode === mode ? { background: 'var(--dsw-alias-bg-layer-2)', color: 'var(--dsw-alias-label-primary)' } : {}),
         },
         type: 'button',
+        title: mode === 'modules' ? '按模块折叠' : '只显示文件，并在文件名后显示目录',
         onClick: (event) => { event.preventDefault(); onTreeMode(mode) },
       }, label)
-      const sectionTitle = (text, paths, picked, onToggleMany) => h('div', {
+      const sectionTitle = (text, paths, picked, onToggleMany, action) => h('div', {
         style: { ...styles.sectionHead, alignItems: 'center' },
       },
         paths.length ? pickBox(paths, picked, onToggleMany, false) : null,
-        h('span', { style: { fontWeight: 700, color: 'var(--dsw-alias-label-primary)' } }, text),
-        h('span', null, `${paths.filter((item) => picked.has(item)).length}/${paths.length}`),
+        h('span', { style: { fontWeight: 700, color: 'var(--dsw-alias-label-primary)', flex: '0 0 auto' } }, text),
+        h('span', { style: { flex: '1 1 auto', fontFamily: monospace } }, `${paths.filter((item) => picked.has(item)).length}/${paths.length}`),
+        action,
       )
-      return h('div', null,
+      const commitTitle = !headBranch
+        ? '先切换到一个分支'
+        : (!messageReady
+            ? '先填写提交日志'
+            : (conflictCount
+                ? '先解决冲突'
+                : (merging && commitPaths.length && !allCommitPicked
+                    ? '合并时要勾选全部已暂存的文件'
+                    : (pickedCommitPaths.length
+                        ? `只提交勾选的 ${pickedCommitPaths.length} 个已暂存文件，没勾的留在暂存区`
+                        : '先勾选要提交的已暂存文件'))))
+      const scroll = h('div', { style: { flex: '1 1 auto', overflow: 'auto', minHeight: 0 } },
         merging && onOpenMerge
           ? h('div', { style: conflictCount ? styles.mergeAlert : styles.mergePending },
               h('span', { style: { flex: '1 1 auto' } }, conflictCount
-                ? `${conflictCount} 个文件冲突，先选择保留哪一边`
+                ? `${conflictCount} 个文件冲突`
                 : '这次合并还没有提交'),
               h('button', {
                 type: 'button',
                 style: styles.rowButton,
                 onClick: (event) => { event.preventDefault(); onOpenMerge() },
-              }, '打开合并窗口'),
+              }, '打开合并'),
             )
           : null,
-        h('div', { style: styles.treeSummary },
-          h('div', null, `${files.length} 个文件有未提交改动 · 已暂存 ${stagedCount} · 未暂存 ${unstagedCount} · 未跟踪 ${untrackedCount}`),
-          treeMode === 'modules'
-            ? h('div', null, moduleNames.length ? `${moduleNames.length} 个模块：${moduleNames.slice(0, 6).join('、')}${moduleNames.length > 6 ? '…' : ''}` : '')
-            : h('div', null, '只列出文件，不按模块折叠。'),
-          h('div', { style: { display: 'flex', gap: 6, marginTop: 6 } },
-            modeButton('modules', '按模块'),
-            modeButton('files', '只显示文件'),
-          ),
-          statusLegend(),
+        h('div', {
+          style: { ...styles.treeSummary, display: 'flex', alignItems: 'center', gap: 6 },
+          title: '未跟踪红、新增绿、修改蓝、删除灰、重命名紫、冲突橙',
+        },
+          h('span', { style: { flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+            `${files.length} 改动 · 暂存 ${stagedCount} · 未暂存 ${unstagedCount}${untrackedCount ? ` · 未跟踪 ${untrackedCount}` : ''}`),
+          modeButton('modules', '按模块'),
+          modeButton('files', '只显示文件'),
         ),
         conflictFiles.length
           ? h('div', null,
               h('div', { style: styles.sectionHead }, h('span', { style: { fontWeight: 700, color: '#e3b341' } }, '冲突')),
-              conflictFiles.map((entry) => renderChangeFile(entry, 12, openDiffTab, actions, null)),
+              conflictFiles.map((entry) => renderChangeFile(entry, 12, openDiffTab, actions, null, true)),
             )
           : null,
-        h('div', null,
-          sectionTitle('待 add', addPaths, pickedAdd || new Set(), onToggleAddMany),
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px' } },
-            h('button', {
-              type: 'button',
-              style: { ...styles.button, opacity: pickedAddPaths.length && !stageBusy ? 1 : 0.45 },
-              disabled: !headBranch || !pickedAddPaths.length || !!stageBusy,
-              title: headBranch ? `git add 勾选的文件，只影响分支 ${headBranch}` : '先切换到一个分支',
-              onClick: (event) => { event.preventDefault(); onStagePaths(pickedAddPaths) },
-            }, stageBusy ? '暂存中…' : `add${pickedAddPaths.length ? ' ' + pickedAddPaths.length : ''}`),
-            h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } },
-              addFiles.length ? '只暂存勾选的未暂存和未跟踪文件。' : '没有需要 add 的文件。'),
-          ),
-          addFiles.length
-            ? renderPickRows({
-                files: addFiles, treeMode, collapsed, toggleDir, openDiffTab,
-                picked: pickedAdd || new Set(), onToggle: onToggleAdd, onToggleMany: onToggleAddMany,
-                prefix: 'add:', title: '勾选后 add，写入暂存区',
-              })
-            : null,
-        ),
-        h('div', null,
-          sectionTitle('待 commit', commitPaths, pickedCommit || new Set(), onToggleCommitMany),
-          commitFiles.length
-            ? renderPickRows({
-                files: commitFiles, treeMode, collapsed, toggleDir, openDiffTab,
-                picked: pickedCommit || new Set(), onToggle: onToggleCommit, onToggleMany: onToggleCommitMany,
-                prefix: 'commit:', title: '勾选后提交暂存区里的这一版',
-              })
-            : h('div', { style: { ...styles.empty, padding: '8px 12px' } }, '还没有已暂存的文件。先在上面勾选并 add。'),
-          headBranch
-            ? h('div', { style: styles.commitDock },
-                h('div', { style: { fontWeight: 700, marginBottom: 6 } }, `提交到 ${headBranch}`),
-                h('textarea', {
-                  style: styles.commitBox,
-                  value: commitMessage || '',
-                  placeholder: merging ? `填写日志，在 ${headBranch} 上完成这次合并` : `提交到 ${headBranch}（日志必填）`,
-                  spellCheck: false,
-                  onChange: (event) => onCommitMessage(event.target.value),
-                  onKeyDown: (event) => {
-                    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && canCommit) {
-                      onCommit(merging ? undefined : pickedCommitPaths)
-                    }
-                  },
-                }),
-                h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 } },
-                  h('button', {
-                    type: 'button',
-                    style: { ...styles.button, opacity: canCommit ? 1 : 0.45 },
-                    disabled: !canCommit,
-                    title: !messageReady
-                      ? '先填写提交日志'
-                      : (conflictCount
-                          ? '先解决冲突'
-                          : (merging && commitPaths.length && !allCommitPicked
-                              ? '合并时要勾选全部已暂存的文件'
-                              : (pickedCommitPaths.length ? `只提交勾选的 ${pickedCommitPaths.length} 个文件` : '先勾选要提交的已暂存文件'))),
-                    onClick: (event) => { event.preventDefault(); onCommit(merging ? undefined : pickedCommitPaths) },
-                  }, commitBusy ? '提交中…' : '提交'),
-                  h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } },
-                    conflictCount
-                      ? `${conflictCount} 个冲突待选择，解决后才能提交`
-                      : (merging
-                          ? '这次合并会提交全部已暂存的文件。'
-                          : '只提交下面勾选的已暂存文件，没勾的留在暂存区。')),
-                ),
-                commitError
-                  ? h('div', { style: { marginTop: 6, color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'normal' } }, commitError)
-                  : null,
-              )
-            : h('div', { style: { margin: '8px 10px' } }, '当前不在分支上。先切换到一个分支，再暂存和提交。'),
-        ),
+        sectionTitle('待 add', addPaths, pickedAdd || new Set(), onToggleAddMany, h('button', {
+          type: 'button',
+          style: { ...styles.rowButton, opacity: pickedAddPaths.length && !stageBusy ? 1 : 0.45 },
+          disabled: !headBranch || !pickedAddPaths.length || !!stageBusy,
+          title: headBranch ? `git add 勾选的未暂存和未跟踪文件，只影响分支 ${headBranch}` : '先切换到一个分支',
+          onClick: (event) => { event.preventDefault(); onStagePaths(pickedAddPaths) },
+        }, stageBusy ? '暂存中…' : `add${pickedAddPaths.length ? ' ' + pickedAddPaths.length : ''}`)),
+        addFiles.length
+          ? renderPickRows({
+              files: addFiles, treeMode, collapsed, toggleDir, openDiffTab,
+              picked: pickedAdd || new Set(), onToggle: onToggleAdd, onToggleMany: onToggleAddMany,
+              prefix: 'add:', title: '勾选后 add，写入暂存区',
+            })
+          : null,
+        sectionTitle('待 commit', commitPaths, pickedCommit || new Set(), onToggleCommitMany, null),
+        commitFiles.length
+          ? renderPickRows({
+              files: commitFiles, treeMode, collapsed, toggleDir, openDiffTab,
+              picked: pickedCommit || new Set(), onToggle: onToggleCommit, onToggleMany: onToggleCommitMany,
+              prefix: 'commit:', title: '勾选后提交暂存区里的这一版',
+            })
+          : null,
       )
+      const dock = headBranch
+        ? h('div', { style: styles.commitDock },
+            h('textarea', {
+              style: styles.commitBox,
+              rows: 2,
+              value: commitMessage || '',
+              placeholder: merging ? `填写日志，在 ${headBranch} 上完成这次合并` : `提交到 ${headBranch}（日志必填）`,
+              spellCheck: false,
+              onChange: (event) => onCommitMessage(event.target.value),
+              onKeyDown: (event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && canCommit) {
+                  onCommit(merging ? undefined : pickedCommitPaths)
+                }
+              },
+            }),
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 } },
+              h('button', {
+                type: 'button',
+                style: { ...styles.button, ...compactButton, opacity: canCommit ? 1 : 0.45 },
+                disabled: !canCommit,
+                title: commitTitle,
+                onClick: (event) => { event.preventDefault(); onCommit(merging ? undefined : pickedCommitPaths) },
+              }, commitBusy ? '提交中…' : '提交'),
+              commitError
+                ? h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'normal' } }, commitError)
+                : null,
+            ),
+          )
+        : h('div', { style: { ...styles.commitDock, color: 'var(--dsw-alias-label-secondary)', fontSize: 12 } }, '当前不在分支上。先切换到一个分支，再暂存和提交。')
+      return { scroll, dock }
     }
 
     function renderDirectoryList({

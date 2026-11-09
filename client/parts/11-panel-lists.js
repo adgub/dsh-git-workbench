@@ -189,6 +189,7 @@
       const tabBadge = (item) => (item.kind === 'commit' ? 'C' : extLabel(item.path))
 
       let listContent
+      let changePane = null
       if (!repo) {
         listContent = h('div', { style: styles.empty },
           '选择一个 Git 项目开始。',
@@ -201,7 +202,7 @@
         } else if (files.length === 0) {
           listContent = h('div', { style: styles.empty }, '工作区干净：没有未暂存、已暂存或未跟踪的改动，没有需要提交的内容。')
         } else {
-          listContent = renderChangeList({
+          changePane = renderChangeList({
             files, tree, collapsed, toggleDir, openDiffTab, treeMode, onTreeMode: chooseTreeMode,
             stagedCount, unstagedCount, untrackedCount, moduleNames,
             commitMessage, onCommitMessage: (value) => { setCommitMessage(value); setCommitError('') },
@@ -302,9 +303,15 @@
         h('button', {
           key,
           style: { ...styles.tab, ...(tab === key ? { ...styles.tabActive, borderBottomColor: repoColor } : {}) },
-          title: key === 'directory' ? '查看整个项目目录（含 .gitignore 忽略的文件夹）' : undefined,
+          title: key === 'directory'
+            ? '查看整个项目目录（含 .gitignore 忽略的文件夹）'
+            : (count ? `${label} ${count}` : label),
           onClick: () => setTab(key),
-        }, count === undefined || count === 0 ? label : `${label} ${count}`)
+        },
+          h('span', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15, width: '100%' } },
+            h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, label),
+            h('span', { style: { fontSize: 10, fontFamily: monospace, opacity: count ? 0.85 : 0 } }, count ? String(count) : '0'),
+          ))
 
       const sidebar = h('div', { style: { ...styles.card, ...styles.sidebar, width: sidebarWidth } },
         h('div', { style: styles.tabs },
@@ -314,7 +321,17 @@
           tabButton('log', '日志', commits.length),
           tabButton('branches', '分支', branches.length),
         ),
-        h('div', { style: styles.list }, listContent),
+        changePane
+          ? h('div', {
+              style: {
+                flex: '1 1 auto',
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'var(--dsw-alias-bg-layer-1)',
+              },
+            }, changePane.scroll, changePane.dock)
+          : h('div', { style: styles.list }, listContent),
       )
 
       const folderIcon = h('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true, style: { display: 'block', flex: '0 0 auto' } },
