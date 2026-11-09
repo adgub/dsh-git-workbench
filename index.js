@@ -24,11 +24,13 @@
  * - Every op has a timeout; output is capped. A timed-out git has its process
  *   tree killed, then lock files that command left under `.git` are removed.
  * - Reads are open. Mutations (`switch`, `branchCreate`, `branchRename`, `pull`,
- *   `push`, `reveal`, `remoteBind`, `integrate`, `stage`, `commitCreate`,
- *   `uncommit`, `takeSide`) require the panel's `x-dsh-git-workbench: 1` header,
- *   so a cross-origin page cannot trigger them. Pull is `--ff-only`. Push,
- *   reset and merge never use `--force`. Uncommit is `reset --soft` of the tip
- *   and only when that commit is not on the upstream.
+ *   `push`, `reveal`, `remoteBind`, `integrate`, `mergeBranch`, `mergeAbort`,
+ *   `stage`, `commitCreate`, `uncommit`, `takeSide`) require the panel's
+ *   `x-dsh-git-workbench: 1` header, so a cross-origin page cannot trigger them.
+ *   Pull is `--ff-only`. Push, reset and merge never use `--force`. Uncommit is
+ *   `reset --soft` of the tip and only when that commit is not on the upstream.
+ *   `mergeBranch` merges another local branch into HEAD. `mergeAbort` is
+ *   `merge --abort` and only while MERGE_HEAD exists.
  */
 export { inject, apply } from './host/http.js'
 export { handleOp } from './host/ops.js'

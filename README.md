@@ -44,11 +44,11 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 |---|---|
 | 项目 | 列出 DSH 工作区里检测到的 Git 仓库，可搜索、切换。读不到的工作区标成「不可访问」并留在列表里。也可以手动添加绝对路径；手动项目存在浏览器 localStorage 中，可移除 |
 | 项目颜色 / 打开目录 | 每行可改颜色，或在文件管理器中打开目录。颜色按路径稳定分配（12 色），只保存在浏览器里 |
-| 分支 | 显示当前分支和 ↑↓。点本地分支后执行 `git switch`（旧版 git 使用 `git checkout`）。菜单里可以新建分支（`git switch -c`）和修改当前分支的名称（`git branch -m`）。未提交改动会带到新分支；冲突时 git 拒绝切换并显示原因。切换或新建后关闭标签页并刷新 |
+| 分支 | 显示当前分支和 ↑↓。点本地分支后执行 `git switch`（旧版 git 使用 `git checkout`）。菜单里可以新建分支（`git switch -c`）和修改当前分支的名称（`git branch -m`）。非当前分支可以「合并」进当前分支。未提交改动会带到新分支；冲突时 git 拒绝切换并显示原因。切换或新建后关闭标签页并刷新 |
 | 拉取 / 推送 | 紧挨分支。拉取是 `git pull --ff-only`，不能快进时显示 git 的原因，不自动合并。推送是 `git push`；没有上游时 `git push -u origin <当前分支>`。都不会使用 `--force` |
-| 变更树 | 按模块（顶层目录）→ 子目录 → 文件折叠，也可以改成只显示文件。目录显示改动数，文件旁的圆点表示已暂存、未暂存、未跟踪。未暂存和未跟踪的文件有 **add**。顶部填写提交日志后才能点 **提交**，空日志不能提交。冲突文件可以选择「用本地」或「用远端」。点文件打开差异，改动行有底色 |
+| 变更树 | 按模块（顶层目录）→ 子目录 → 文件折叠，也可以改成只显示文件。上面是「待 add」：未暂存和未跟踪的文件带复选框，勾选模块或文件后点 **add**。下面是「待 commit」：只列出已暂存的文件，勾选后在底部的日志框里提交这些文件，没勾的留在暂存区。日志框有单独的底色和阴影。空日志不能提交。冲突文件整行用橙色标出，可以选择「用本地」或「用远端」。正在合并时，顶部可以打开合并窗口。点文件打开差异，改动行有底色 |
 | 绑定仓库 | 在「更多」里打开。粘贴 `https://`、`http://`、`ssh://` 或 `git@host:path`。面板执行 `git remote add origin` 和 `git fetch`。已经绑定过时可以更换地址 |
-| 合并两边 | 绑定并拉取之后，按本地和远端的关系给出一个操作：远端没有新提交就去推送；远端超前就快进；两边都有新提交，或两边没有共同祖先，就合并进暂存区，填写日志后再提交。有冲突时在变更树里选择保留哪一边。不会使用 `--force` |
+| 合并窗口 | 从分支菜单、分支页或绑定横幅打开。上面两张卡分别是你的短 SHA、提交备注，和对方的短 SHA、提交备注。两边都有新提交时，中间三列是你的文件、合并结果、对方的文件；结果列里 `<<<<<<<` 整段铺绿色，`>>>>>>>` 整段铺蓝色，分隔线是黄色。冲突文件名单独排成一条橙色提示，点不掉，清完才消失。能快进时不展开三列。进行中的合并可以放弃（`git merge --abort`）。不会使用 `--force` |
 | 回退 | 在「更多」里。只撤销当前分支最上面那一次还没推送的提交（`git reset --soft HEAD~1`）。改动留在暂存区。已经在上游里的提交不能回退；第一次提交也不能回退。暂存和提交同样只作用于当前检出的分支 |
 | 目录 | 按层读取整个项目目录，包含被 `.gitignore` 忽略的项、空目录和 `node_modules`，只隐藏 `.git`。点文件夹再加载下一层，单层超过 5000 项会截断。符号链接目录不展开 |
 | 文件标签与搜索 | 输入即筛选。有改动的文件优先，回车打开差异；其余仓库文件打开全文。`↑` `↓` 选择，`Enter` 打开，`Esc` 关闭 |
@@ -92,9 +92,12 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 | 合并 · 没有共同祖先 | `git merge --allow-unrelated-histories --no-commit refs/remotes/origin/<分支>` |
 | 合并 · 本地还没有任何提交 | 先 `git diff --cached --quiet` 确认暂存区是空的，然后 `git checkout -B <当前分支> refs/remotes/origin/<分支>` |
 | 合并 · 远端没有新提交 | 不执行 merge，界面提示去推送 |
+| 合并本地分支 | 先判断和 `refs/heads/<分支>` 的关系，命令与上面四行相同，只是引用换成本地分支。已经包含在当前分支里时不执行 merge |
+| 放弃合并 | 正在合并时 `git merge --abort` |
+| 合并窗口 | `HEAD` 和 `MERGE_HEAD` 各取一次 `git log -1` 的短 SHA 和标题。冲突文件：你的用 `git show :2:<路径>`，对方的用 `git show :3:<路径>`，中间读工作区文件 |
 | 冲突时保留一边 | `git checkout --ours -- <路径>` 或 `git checkout --theirs -- <路径>`。这一边把文件删了时改为 `git rm -f -- <路径>`，然后 `git add -- <路径>` |
-| 暂存单个文件 | `git add -- <路径>` |
-| 提交 | `git diff --cached --quiet` 确认有暂存内容（正在合并时允许空暂存区），然后 `git commit -m <日志>` |
+| 暂存勾选的文件 | `git add -- <路径…>`，一次最多 100 个 |
+| 提交 | `git diff --cached --quiet` 确认有暂存内容（正在合并时允许空暂存区）。勾选了一部分已暂存文件时 `git commit -m <日志> -- <路径…>`，其余暂存文件留在暂存区。正在合并时必须提交全部已暂存文件，这时不带路径 |
 | 回退 | `git rev-parse --verify --quiet HEAD~1`。有上游时再 `git merge-base --is-ancestor HEAD @{upstream}`，已经在上游里就拒绝。通过后 `git reset --soft HEAD~1` |
 | 在文件管理器中打开 | 不跑 git |
 | 查找 Git Bash | `git --exec-path`，用来定位 `bash.exe`。打开终端后启动的是这个 bash，不是 git 子命令 |
@@ -132,7 +135,7 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 ## 当前边界
 
 - 目录页只读。不创建、不重命名、不删除文件。
-- 会改本机的 Git 操作都必须从面板按钮发起：切换、新建和重命名当前分支，`git pull --ff-only`，`git push`（没有上游时 `git push -u origin <分支>`，从不用 `--force`），绑定或更换 `origin`，合并远端分支，暂存单个文件，提交已暂存的文件，回退未推送的最新提交，以及在文件管理器中打开项目目录。
+- 会改本机的 Git 操作都必须从面板按钮发起：切换、新建和重命名当前分支，`git pull --ff-only`，`git push`（没有上游时 `git push -u origin <分支>`，从不用 `--force`），绑定或更换 `origin`，合并远端分支或另一条本地分支，放弃进行中的合并，暂存单个文件，提交已暂存的文件，回退未推送的最新提交，以及在文件管理器中打开项目目录。
 - 终端里的命令由你输入，以当前系统用户权限执行，不受 Agent 沙箱限制。插件不拦截、不记录输出，也不把输出发给模型。
 - 不注册模型工具。Agent 调不到这个插件，git 只在你点击时运行。
 
@@ -155,7 +158,7 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 - `git` 以参数数组启动（`shell: false`，工作目录是系统临时目录，用 `-C` 指定仓库），分支名和路径不会进 shell。同一仓库的 git 命令串行执行，并且 `GIT_OPTIONAL_LOCKS=0`，状态和差异不会抢 `index.lock`。超时会结束整个进程树，并删掉这次命令留在 `.git` 里的锁文件。
 - `GIT_TERMINAL_PROMPT=0`，不会停在凭据提示上。
 - 读操作 12 秒超时。拉取和推送 60 秒超时。stdout 上限 8MB，文件预览 200KB。
-- 推送、合并和回退都不带 `--force`。回退只做 `git reset --soft HEAD~1`，并且这次提交必须还不在上游里。`switch`、`branchCreate`、`branchRename`、`pull`、`push`、`reveal`、`remoteBind`、`integrate`、`stage`、`commitCreate`、`uncommit` 和 `takeSide` 要求请求头 `x-dsh-git-workbench: 1`，面板会自己带上，跨站页面触发不了。提交日志走 POST，空白日志会被拒绝。
+- 推送、合并和回退都不带 `--force`。回退只做 `git reset --soft HEAD~1`，并且这次提交必须还不在上游里。`switch`、`branchCreate`、`branchRename`、`pull`、`push`、`reveal`、`remoteBind`、`integrate`、`mergeBranch`、`mergeAbort`、`stage`、`commitCreate`、`uncommit` 和 `takeSide` 要求请求头 `x-dsh-git-workbench: 1`，面板会自己带上，跨站页面触发不了。提交日志走 POST，空白日志会被拒绝。放弃合并只在 `MERGE_HEAD` 还在时执行。
 - 文件路径拒绝绝对路径和 `..`。提交号必须是十六进制。仓库路径必须是绝对路径，且通过 `git rev-parse --is-inside-work-tree`。分支名通过 `git check-ref-format --branch`，以 `-` 开头的一律拒绝。
 - `dir` 只做逐层 `readdir`：必须是仓库相对路径，拒绝符号链接目录，每层最多 5000 项，隐藏 `.git`。
 - 切换分支前不 stash、不丢弃改动。冲突时 `git switch` 拒绝，错误原文显示在界面上。
@@ -189,8 +192,12 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 | `remoteBind` | `url`，`replace=1` 时允许更换已有 origin | `git remote add` 或 `set-url`，然后 `git fetch`，并返回两边历史的关系。需要面板请求头 |
 | `remotePlan` | `branch` | 只判断已经 fetch 过的某个远端分支，不再访问网络 |
 | `integrate` | `branch` | 按关系快进、合并进暂存区，或在本地还没有提交时取下远端历史。需要面板请求头 |
-| `stage` | `path` | `git add -- <路径>`。需要面板请求头 |
-| `commitCreate` | POST JSON `message` | `git commit -m`。日志去掉空白后不能为空。需要面板请求头 |
+| `mergePlan` | `branch`，`source=local\|origin` | 只判断关系，并返回两边的短 SHA 和提交备注。已经在合并时改为返回这次合并 |
+| `mergeBranch` | `branch` | 把另一条本地分支按同样的关系合并进当前分支。需要面板请求头 |
+| `mergeAbort` | `branch`（当前分支） | 进行中的合并执行 `git merge --abort`。需要面板请求头 |
+| `mergeView` | `path` 可选，`branch` 可选 | 进行中的合并：两边的版本号和备注，冲突路径；带 `path` 时再返回你的、对方的和工作区三份内容 |
+| `stage` | `path`，或 POST JSON `paths` | `git add -- <路径…>`。需要面板请求头 |
+| `commitCreate` | POST JSON `message`，可选 `paths` | `git commit -m`。带 `paths` 时只提交这些已暂存文件。日志去掉空白后不能为空。需要面板请求头 |
 | `uncommit` | — | 最近一次提交还不在上游时，`git reset --soft HEAD~1`。需要面板请求头 |
 | `takeSide` | `path`，`side=ours\|theirs` | 合并冲突时保留一边并暂存。需要面板请求头 |
 | `reveal` | `repo` | 在系统文件管理器中打开仓库根目录。需要面板请求头 |
@@ -203,7 +210,7 @@ Windows 上要用右侧终端，需要安装 Git Bash。没有 Git Bash 时，�
 node smoke.mjs <任意 Git 仓库的绝对路径>
 ```
 
-脚本会跑 `gitBash`、`repos`、`status`、`log`、`graph`、`branches`、`diff`、`file`、`dir`、`commit`，以及路径穿越、`switch`、`branchCreate`、`branchRename`、`pull`、`push`、`reveal`、`stage`、`commitCreate`、`uncommit`、`remoteBind`、`integrate` 和 `takeSide` 的拒绝分支。
+脚本会跑 `gitBash`、`repos`、`status`、`log`、`graph`、`branches`、`diff`、`file`、`dir`、`commit`，以及路径穿越、`switch`、`branchCreate`、`branchRename`、`pull`、`push`、`reveal`、`stage`、`commitCreate`、`uncommit`、`remoteBind`、`integrate`、`mergeBranch`、`mergeAbort` 和 `takeSide` 的拒绝分支。
 
 宿主入口仍是 `index.js`，实现在 `host/`：`git.js` 负责启动进程，`parse.js` 解析输出，`discover.js` 找仓库，`ops-read.js`、`ops-branch.js`、`ops-remote.js`、`ops-commit.js` 按操作分开。浏览器源码在 `client/parts/`，按文件名顺序拼成 DSH 加载的那一个 `client.js`：
 

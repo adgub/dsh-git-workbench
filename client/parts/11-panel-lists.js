@@ -1,5 +1,36 @@
 // @part 11-panel-lists.js
       const files = React.useMemo(() => (status && Array.isArray(status.files) ? status.files.filter((item) => !item.ignored) : []), [status])
+      React.useEffect(() => {
+        const addable = new Set(files.filter(canAdd).map((item) => item.path))
+        const commitable = new Set(files.filter(canCommitFile).map((item) => item.path))
+        const sameSet = (current, next) => current.size === next.size && [...next].every((item) => current.has(item))
+        setPickedAdd((current) => {
+          const next = new Set([...current].filter((item) => addable.has(item)))
+          return sameSet(current, next) ? current : next
+        })
+        setPickedCommit((current) => {
+          const next = new Set([...current].filter((item) => commitable.has(item)))
+          return sameSet(current, next) ? current : next
+        })
+      }, [files])
+      const togglePick = (setter, path) => {
+        setter((current) => {
+          const next = new Set(current)
+          if (next.has(path)) next.delete(path)
+          else next.add(path)
+          return next
+        })
+      }
+      const togglePickMany = (setter, paths, on) => {
+        setter((current) => {
+          const next = new Set(current)
+          for (const item of paths) {
+            if (on) next.add(item)
+            else next.delete(item)
+          }
+          return next
+        })
+      }
       const tree = React.useMemo(() => buildTree(files), [files])
       const stagedCount = files.filter((item) => item.staged).length
       const unstagedCount = files.filter((item) => item.unstaged).length
@@ -175,8 +206,14 @@
             stagedCount, unstagedCount, untrackedCount, moduleNames,
             commitMessage, onCommitMessage: (value) => { setCommitMessage(value); setCommitError('') },
             onCommit: createCommit, commitBusy, commitError, conflictCount, merging: !!(status && status.merging),
-            onStage: stageFile, onTakeSide: takeSide, stageBusy, sideBusy,
+            onStagePaths: stagePaths, onTakeSide: takeSide, stageBusy, sideBusy,
             headBranch: checkedOutBranch(status),
+            onOpenMerge: status && status.merging ? openOngoingMerge : null,
+            pickedAdd, pickedCommit,
+            onToggleAdd: (path) => togglePick(setPickedAdd, path),
+            onToggleCommit: (path) => togglePick(setPickedCommit, path),
+            onToggleAddMany: (paths, on) => togglePickMany(setPickedAdd, paths, on),
+            onToggleCommitMany: (paths, on) => togglePickMany(setPickedCommit, paths, on),
           })
         }
       } else if (tab === 'directory') {
@@ -240,6 +277,14 @@
           h('span', { style: { flex: '0 0 auto', width: 14, color: 'var(--dsw-alias-state-success-primary)' } }, branch.current ? '●' : ''),
           h('span', { style: { flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
           h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
+          branch.current
+            ? null
+            : h('button', {
+                type: 'button',
+                style: styles.rowButton,
+                title: `把 ${branch.name} 合并进当前分支`,
+                onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
+              }, '合并'),
           h('span', { style: { flex: '0 0 auto', fontSize: 12, color: branch.current ? 'var(--dsw-alias-label-secondary)' : 'var(--dsw-alias-brand-primary)' } },
             branchBusy === branch.name ? '切换中…' : (branch.current ? '当前' : '切换')),
         ))

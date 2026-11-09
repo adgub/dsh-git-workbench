@@ -115,47 +115,154 @@
         }
       }, [repo, integrateBusy, call])
 
-      const integrateRemote = React.useCallback(async () => {
-        if (!repo || !bindReport || !bindReport.branch || integrateBusy) return
-        setIntegrateBusy(true)
-        setBranchError('')
+      const applyMergeView = React.useCallback(async (base, preferPath) => {
+        const summary = await call('mergeView', { branch: (base && base.branch) || '' })
+        const conflicts = summary.conflicts || []
+        const filePath = conflicts.includes(preferPath) ? preferPath : (conflicts[0] || '')
+        let file = null
+        if (filePath) {
+          const full = await call('mergeView', { path: filePath, branch: (summary.theirs && summary.theirs.branch) || (base && base.branch) || '' })
+          file = full.file || null
+        }
+        return {
+          ...(base || {}),
+          ...summary,
+          source: (base && base.source) || 'local',
+          branch: (summary.theirs && summary.theirs.branch) || (base && base.branch) || '',
+          relation: conflicts.length ? 'merge' : 'pending',
+          file,
+          filePath,
+          pending: true,
+          merging: true,
+          blocked: true,
+          busy: false,
+          error: '',
+        }
+      }, [call])
+
+      const openMerge = React.useCallback(async (branch, source) => {
+        if (!repo || !branch) return
+        const nextSource = source === 'origin' ? 'origin' : 'local'
+        setBranchMenuOpen(false)
+        setMoreOpen(false)
+        setMergeSheet({ source: nextSource, branch, busy: true, error: '', conflicts: [], file: null, filePath: '' })
         try {
-          const result = await call('integrate', { branch: bindReport.branch })
-          setBindReport((current) => ({ ...(current || {}), ...result }))
+          const plan = await call('mergePlan', { branch, source: nextSource })
+          if (plan.merging) {
+            setMergeSheet(await applyMergeView({ ...plan, source: nextSource, branch }, (plan.conflicts || [])[0]))
+            return
+          }
+          setMergeSheet({ ...plan, source: nextSource, branch, busy: false, error: '', file: null, filePath: '' })
+        } catch (failure) {
+          setMergeSheet((current) => current ? ({
+            ...current,
+            busy: false,
+            error: hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能合并。'),
+          }) : current)
+        }
+      }, [repo, call, applyMergeView])
+
+      const openOngoingMerge = React.useCallback(async () => {
+        if (!repo) return
+        setMergeSheet({ source: 'local', branch: '', busy: true, error: '', conflicts: [], file: null, filePath: '' })
+        try {
+          setMergeSheet(await applyMergeView({ source: 'local', branch: '' }, ''))
+        } catch (failure) {
+          setMergeSheet((current) => current ? ({
+            ...current,
+            busy: false,
+            error: hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能查看合并。'),
+          }) : current)
+        }
+      }, [repo, applyMergeView])
+
+      const confirmMerge = React.useCallback(async () => {
+        if (!repo || !mergeSheet || !mergeSheet.branch || mergeSheet.busy || mergeSheet.merging) return
+        const source = mergeSheet.source === 'origin' ? 'origin' : 'local'
+        const branch = mergeSheet.branch
+        setMergeSheet((current) => current ? ({ ...current, busy: true, error: '' }) : current)
+        try {
+          const result = source === 'origin'
+            ? await call('integrate', { branch })
+            : await call('mergeBranch', { branch, source: 'local' })
           if (result.conflicts && result.conflicts.length) {
-            flash(`有 ${result.conflicts.length} 个冲突，在变更树里选择保留哪一边`)
+            setMergeSheet(await applyMergeView({ ...mergeSheet, ...result, source, branch }, result.conflicts[0]))
             setTab('changes')
+            flash(`有 ${result.conflicts.length} 个冲突，在中间一列选择保留哪一边`)
           } else if (result.pending) {
-            flash('两边的改动已暂存，填写日志后提交')
+            setMergeSheet(await applyMergeView({ ...mergeSheet, ...result, source, branch }, ''))
             setTab('changes')
+            flash('两边的改动已放进暂存区，填写日志后提交')
           } else if (result.merged) {
-            flash('已快进到远端提交')
-          } else if (result.hint === 'push') {
-            flash('远端没有新提交，可以直接推送')
+            setMergeSheet(null)
+            flash('已快进到对方的提交')
+          } else {
+            setMergeSheet((current) => current ? ({ ...current, ...result, source, branch, busy: false, error: '' }) : current)
+            if (result.hint === 'push' || result.skipped) flash('没有需要合进来的提交')
           }
           await refresh(false)
         } catch (failure) {
-          setBranchError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能合并。'))
-        } finally {
-          setIntegrateBusy(false)
+          setMergeSheet((current) => current ? ({
+            ...current,
+            busy: false,
+            error: hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能合并。'),
+          }) : current)
         }
-      }, [repo, bindReport, integrateBusy, call, flash, refresh])
+      }, [repo, mergeSheet, call, applyMergeView, flash, refresh])
 
-      const stageFile = React.useCallback(async (entry) => {
+      const selectMergeFile = React.useCallback(async (filePath) => {
+        if (!mergeSheet || !filePath || mergeSheet.busy) return
+        setMergeSheet((current) => current ? ({ ...current, busy: true, error: '', filePath }) : current)
+        try {
+          setMergeSheet(await applyMergeView(mergeSheet, filePath))
+        } catch (failure) {
+          setMergeSheet((current) => current ? ({
+            ...current,
+            busy: false,
+            error: hostActionError(failure, '读不到这个冲突文件。'),
+          }) : current)
+        }
+      }, [mergeSheet, applyMergeView])
+
+      const abortMerge = React.useCallback(async () => {
         const branch = checkedOutBranch(status)
-        if (!repo || !branch || !entry || !entry.path || stageBusy) return
-        setStageBusy(entry.path)
+        if (!repo || !branch || !mergeSheet || mergeSheet.busy) return
+        setMergeSheet((current) => current ? ({ ...current, busy: true, error: '' }) : current)
+        try {
+          await call('mergeAbort', { branch })
+          setMergeSheet(null)
+          flash('已放弃这次合并')
+          await refresh(false)
+        } catch (failure) {
+          setMergeSheet((current) => current ? ({
+            ...current,
+            busy: false,
+            error: hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能放弃合并。'),
+          }) : current)
+        }
+      }, [repo, status, mergeSheet, call, flash, refresh])
+
+      const stagePaths = React.useCallback(async (paths) => {
+        const branch = checkedOutBranch(status)
+        const list = Array.isArray(paths) ? paths.filter((item) => typeof item === 'string' && item) : []
+        if (!repo || !branch || !list.length || stageBusy) return
+        setStageBusy('add')
         setCommitError('')
         try {
-          await call('stage', { path: entry.path, branch })
-          flash(`已暂存 ${entry.path}（分支 ${branch}）`)
+          await callPost('stage', { branch, paths: list })
+          setPickedAdd((current) => {
+            const next = new Set(current)
+            for (const item of list) next.delete(item)
+            return next
+          })
+          flash(list.length === 1 ? `已暂存 ${list[0]}（分支 ${branch}）` : `已暂存 ${list.length} 个文件（分支 ${branch}）`)
           await refresh(false)
         } catch (failure) {
           setCommitError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能 add。'))
         } finally {
           setStageBusy('')
         }
-      }, [repo, status, stageBusy, call, flash, refresh])
+      }, [repo, status, stageBusy, callPost, flash, refresh])
 
       const takeSide = React.useCallback(async (entry, side) => {
         const branch = checkedOutBranch(status)
@@ -173,16 +280,36 @@
         }
       }, [repo, status, sideBusy, call, flash, refresh])
 
-      const createCommit = React.useCallback(async () => {
+      const keepMergeSide = React.useCallback(async (side) => {
+        if (!mergeSheet || !mergeSheet.filePath) return
+        const filePath = mergeSheet.filePath
+        await takeSide({ path: filePath }, side)
+        try {
+          setMergeSheet(await applyMergeView(mergeSheet, filePath))
+        } catch (failure) {
+          setMergeSheet((current) => current ? ({
+            ...current,
+            busy: false,
+            error: hostActionError(failure, '冲突已经处理，刷新合并窗口失败。'),
+          }) : current)
+        }
+      }, [mergeSheet, takeSide, applyMergeView])
+
+      const createCommit = React.useCallback(async (paths) => {
         const message = commitMessage.trim()
         const branch = checkedOutBranch(status)
+        const chosen = Array.isArray(paths) ? paths.filter((item) => typeof item === 'string' && item) : []
         if (!repo || !branch || !message || commitBusy) return
         setCommitBusy(true)
         setCommitError('')
         try {
-          await callPost('commitCreate', { message, branch })
+          const body = { message, branch }
+          if (chosen.length) body.paths = chosen
+          await callPost('commitCreate', body)
           setCommitMessage('')
           setBindReport(null)
+          setMergeSheet(null)
+          setPickedCommit(new Set())
           flash(`已提交到 ${branch}`)
           await refresh(false)
           loadRepos(true)

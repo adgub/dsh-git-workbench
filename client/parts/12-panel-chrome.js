@@ -54,6 +54,14 @@
                 },
                   h('span', { style: { width: 12, flex: '0 0 auto', color: 'var(--dsw-alias-state-success-primary)' } }, branch.current ? '●' : ''),
                   h('span', { style: { flex: '1 1 auto', fontWeight: branch.current ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
+                  branch.current
+                    ? null
+                    : h('button', {
+                        type: 'button',
+                        style: styles.rowButton,
+                        title: `把 ${branch.name} 合并进当前分支`,
+                        onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
+                      }, '合并'),
                   branchBusy === branch.name
                     ? h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-brand-primary)' } }, '切换中…')
                     : h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.current ? '当前' : '点击切换'),

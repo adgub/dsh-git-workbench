@@ -4,6 +4,7 @@ import { describeRepoCached, discoverRepositories, resolveRepo, resolveWorkspace
 import { detectGitBash, git } from './git.js'
 import { handleBranchOp } from './ops-branch.js'
 import { handleCommitOp } from './ops-commit.js'
+import { handleMergeOp } from './ops-merge.js'
 import { handleReadOp } from './ops-read.js'
 import { handleRemoteOp } from './ops-remote.js'
 
@@ -61,5 +62,6 @@ export async function handleOp(op, params, host = {}) {
     || (await handleBranchOp(op, frame))
     || (await handleRemoteOp(op, frame))
     || (await handleCommitOp(op, frame))
+    || (await handleMergeOp(op, frame))
     || { status: 400, body: { error: `未知操作：${op}` } }
 }

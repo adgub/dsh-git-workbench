@@ -174,9 +174,9 @@
                       ? h('div', { style: { marginTop: 6 } },
                           h('button', {
                             style: styles.button,
-                            disabled: !!integrateBusy || !bindReport.branch,
-                            onClick: integrateRemote,
-                          }, integrateBusy ? '合并中…' : integrateLabel(bindReport.relation)),
+                            disabled: !!(mergeSheet && mergeSheet.busy) || !bindReport.branch,
+                            onClick: () => openMerge(bindReport.branch, 'origin'),
+                          }, mergeSheet && mergeSheet.busy ? '合并中…' : integrateLabel(bindReport.relation)),
                         )
                       : null,
                     h('button', {
@@ -191,8 +191,26 @@
           sidebar,
           sidebarSplitter,
           h('div', { style: { ...styles.card, ...styles.main } },
-            contentHead,
-            h('div', { style: { ...styles.scroll, ...(detail && activeTab ? styles.codeSurface : {}) } }, contentBody),
+            mergeSheet
+              ? h(MergeSheet, {
+                  sheet: mergeSheet,
+                  commitMessage,
+                  commitBusy,
+                  commitError,
+                  headBranch: checkedOutBranch(status),
+                  sideBusy,
+                  onCommitMessage: (value) => { setCommitMessage(value); setCommitError('') },
+                  onCommit: createCommit,
+                  onClose: () => setMergeSheet(null),
+                  onAbort: abortMerge,
+                  onConfirm: confirmMerge,
+                  onSelectFile: selectMergeFile,
+                  onTakeSide: keepMergeSide,
+                })
+              : h(React.Fragment, null,
+                  contentHead,
+                  h('div', { style: { ...styles.scroll, ...(detail && activeTab ? styles.codeSurface : {}) } }, contentBody),
+                ),
           ),
           terminalSplitter,
           terminalPane,
