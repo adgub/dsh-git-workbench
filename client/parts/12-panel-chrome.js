@@ -53,12 +53,12 @@
                   title: branch.upstream ? `${branch.name} → ${branch.upstream}` : branch.name,
                 },
                   h('span', { style: { width: 12, flex: '0 0 auto', color: 'var(--dsw-alias-state-success-primary)' } }, branch.current ? '●' : ''),
-                  h('span', { style: { flex: '1 1 auto', fontWeight: branch.current ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
+                  h('span', { style: { flex: '1 1 auto', minWidth: 0, fontWeight: branch.current ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
                   branch.current
                     ? null
                     : h('button', {
                         type: 'button',
-                        style: styles.rowButton,
+                        style: { ...styles.rowButton, flex: '0 0 auto' },
                         title: `把 ${branch.name} 合并进当前分支`,
                         onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
                       }, '合并'),
