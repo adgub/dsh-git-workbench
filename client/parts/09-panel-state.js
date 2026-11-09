@@ -49,6 +49,7 @@
       const [allFiles, setAllFiles] = React.useState(null)
       const [colorPicker, setColorPicker] = React.useState(null)
       const [branchMenuOpen, setBranchMenuOpen] = React.useState(false)
+      const [mergePickOpen, setMergePickOpen] = React.useState(false)
       const [branchBusy, setBranchBusy] = React.useState('')
       const [branchError, setBranchError] = React.useState('')
       const [branchDraft, setBranchDraft] = React.useState('')
@@ -440,6 +441,7 @@
         try {
           const result = await call('switch', { branch: name })
           setBranchMenuOpen(false)
+          setMergePickOpen(false)
           setOpenTabs([])
           setActiveTabId('')
           setDetail('')

@@ -144,6 +144,7 @@
         if (!repo || !branch) return
         const nextSource = source === 'origin' ? 'origin' : 'local'
         setBranchMenuOpen(false)
+        setMergePickOpen(false)
         setMoreOpen(false)
         setMergeSheet({ source: nextSource, branch, busy: true, error: '', conflicts: [], file: null, filePath: '' })
         try {

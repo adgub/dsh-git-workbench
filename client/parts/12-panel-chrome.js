@@ -3,7 +3,7 @@
       const repoButton = h('div', { style: { position: 'relative', flex: '0 0 auto' } },
         h('div', {
           style: { ...styles.repoButton, borderBottomColor: repoColor },
-          onClick: () => { setRepoMenuOpen((open) => !open); setBranchMenuOpen(false); setSearchOpen(false); setRepoFilter(''); setAddError('') },
+          onClick: () => { setRepoMenuOpen((open) => !open); setBranchMenuOpen(false); setMergePickOpen(false); setSearchOpen(false); setRepoFilter(''); setAddError('') },
           title: repo ? `${currentName}\n${repo}\n点这里切换项目 / 添加仓库` : '选择项目',
         },
           repo
@@ -24,7 +24,7 @@
         h('button', {
           style: styles.branchButton,
           disabled: !repo,
-          onClick: () => { setBranchMenuOpen((open) => !open); setRepoMenuOpen(false); setSearchOpen(false); setBranchError('') },
+          onClick: () => { setBranchMenuOpen((open) => !open); setMergePickOpen(false); setRepoMenuOpen(false); setSearchOpen(false); setBranchError('') },
           title: repo ? '切换本地分支' : '先选择一个项目',
         },
           h('span', { style: { color: repoColor, fontSize: 12, flex: '0 0 auto' } }, '●'),
@@ -95,6 +95,41 @@
             branchError
               ? h('div', { style: { padding: '4px 8px', fontSize: 12, color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'normal' } }, branchError)
               : null,
+          ),
+        ) : null,
+      )
+
+      const headBranch = checkedOutBranch(status)
+      const otherBranches = branches.filter((branch) => branch.name && branch.name !== headBranch)
+      const mergePick = h('div', { style: { position: 'relative', flex: '0 0 auto' } },
+        h('button', {
+          type: 'button',
+          style: styles.button,
+          disabled: !repo || !headBranch || otherBranches.length === 0 || !!branchBusy,
+          title: !headBranch
+            ? '当前不在分支上，不能合并'
+            : (otherBranches.length ? `把其它本地分支合并进 ${headBranch}` : '没有其它本地分支可以合并'),
+          onClick: (event) => {
+            event.preventDefault()
+            setMergePickOpen((open) => !open)
+            setBranchMenuOpen(false)
+            setRepoMenuOpen(false)
+            setMoreOpen(false)
+            setSearchOpen(false)
+          },
+        }, '合并'),
+        mergePickOpen ? h(React.Fragment, null,
+          h('div', { style: styles.overlay, onClick: () => setMergePickOpen(false) }),
+          h('div', { style: { ...styles.moreMenu, minWidth: 240, maxWidth: 360, zIndex: 41 } },
+            h('div', { style: styles.popHead }, `合并进 ${headBranch || '当前分支'}`),
+            otherBranches.map((branch) => h('button', {
+              key: branch.name,
+              type: 'button',
+              className: 'dsh-git-hit',
+              style: { ...styles.moreItem, whiteSpace: 'normal' },
+              title: `把 ${branch.name} 合并进 ${headBranch}`,
+              onClick: (event) => { event.preventDefault(); openMerge(branch.name, 'local') },
+            }, branch.name)),
           ),
         ) : null,
       )
@@ -179,7 +214,7 @@
           value: searchText,
           placeholder: '搜索文件…',
           spellCheck: false,
-          onFocus: () => { setSearchOpen(true); setSearchIndex(0); setRepoMenuOpen(false); setBranchMenuOpen(false) },
+          onFocus: () => { setSearchOpen(true); setSearchIndex(0); setRepoMenuOpen(false); setBranchMenuOpen(false); setMergePickOpen(false) },
           onChange: (event) => { setSearchText(event.target.value); setSearchOpen(true); setSearchIndex(0) },
           onKeyDown: (event) => {
             if (event.key === 'Escape') {
@@ -225,6 +260,7 @@
       const tabsBar = h('div', { style: styles.tabStrip },
         repoButton,
         branchChip,
+        mergePick,
         syncButtons,
         moreMenu,
         refreshButton,
