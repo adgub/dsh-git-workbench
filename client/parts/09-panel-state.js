@@ -52,6 +52,7 @@
       const [mergePickOpen, setMergePickOpen] = React.useState(false)
       const [branchBusy, setBranchBusy] = React.useState('')
       const [branchError, setBranchError] = React.useState('')
+      const [pendingDelete, setPendingDelete] = React.useState('')
       const [branchDraft, setBranchDraft] = React.useState('')
       const [renameDraft, setRenameDraft] = React.useState('')
       const [syncBusy, setSyncBusy] = React.useState('')

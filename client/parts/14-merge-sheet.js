@@ -161,9 +161,12 @@
         !ours
           ? h('div', { style: styles.empty }, sheet.busy ? '正在读取两边的提交…' : '还没有读到两边的提交。')
           : h('div', { style: styles.mergeTop },
-              h(MergeIdentity, { kicker: '你的版本', person: ours, accent: '#3fb950' }),
-              h('div', { style: styles.mergeArrow }, '→'),
               h(MergeIdentity, { kicker: '别人的版本', person: theirs, accent: '#58a6ff' }),
+              h('div', {
+                style: styles.mergeArrow,
+                title: `把 ${theirs && theirs.branch ? theirs.branch : '别人的版本'} 合并进 ${ours && ours.branch ? ours.branch : '当前分支'}`,
+              }, '→'),
+              h(MergeIdentity, { kicker: '你的版本', person: ours, accent: '#3fb950' }),
             ),
         conflicts.length
           ? h('div', { style: styles.mergeAlert }, `${conflicts.length} 个文件冲突。绿色是你的版本，蓝色是别人的版本，黄色分隔线是冲突边界。`)

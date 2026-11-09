@@ -82,6 +82,14 @@ const noHeaderCreate = await handleOp('branchCreate', { repo, branch: 'new-branc
 console.log('branchCreate (no header):', noHeaderCreate.status, head(noHeaderCreate.body.error))
 const badRename = await handleOp('branchRename', { repo, branch: '--force' }, panel)
 console.log('branchRename (option guard):', badRename.status, head(badRename.body.error))
+const badDelete = await handleOp('branchDelete', { repo, branch: '--force' }, panel)
+console.log('branchDelete (option guard):', badDelete.status, head(badDelete.body.error))
+const noHeaderDelete = await handleOp('branchDelete', { repo, branch: 'gone' }, { ctx, config, headers: {} })
+console.log('branchDelete (no header):', noHeaderDelete.status, head(noHeaderDelete.body.error))
+if (status.body.branch) {
+  const currentDelete = await handleOp('branchDelete', { repo, branch: status.body.branch }, panel)
+  console.log('branchDelete (current):', currentDelete.status, head(currentDelete.body.error))
+}
 const noHeaderPull = await handleOp('pull', { repo }, { ctx, config, headers: {} })
 console.log('pull (no header):', noHeaderPull.status, head(noHeaderPull.body.error))
 const noHeaderPush = await handleOp('push', { repo }, { ctx, config, headers: {} })

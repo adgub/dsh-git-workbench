@@ -1,4 +1,4 @@
-/** Check out, create, or rename a local branch, and open the repo folder. */
+/** Check out, create, rename, or delete a local branch, and open the repo folder. */
 import { stat } from 'node:fs/promises'
 import path from 'node:path'
 import { invalidateRepoCache } from './discover.js'
@@ -97,6 +97,31 @@ export async function handleBranchOp(op, { repo, params, host }) {
     }
     invalidateRepoCache(repo)
     return { status: 200, body: { repo, branch, previous, command: 'branch -m' } }
+  }
+
+  if (op === 'branchDelete') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '删除分支只能从 Git 面板发起' } }
+    const accepted = await acceptBranchName(repo, params.branch)
+    if (accepted.error) return accepted.error
+    const branch = accepted.branch
+    const current = await currentBranchName(repo)
+    if (current && branch === current) {
+      return { status: 409, body: { error: '不能删除当前所在的分支', repo, branch } }
+    }
+    if (!(await localBranchExists(repo, branch))) {
+      return { status: 404, body: { error: `本地没有分支 ${branch}`, repo, branch } }
+    }
+    // `-d` refuses a branch that is not merged. Never `-D` or `--force`.
+    const result = await git(['branch', '-d', branch], repo)
+    if (!result.ok) {
+      const raw = String(result.stderr || '').trim()
+      const detail = /not fully merged/i.test(raw)
+        ? `分支 ${branch} 还没有合并进来，不能删除`
+        : (raw.split('\n').map((line) => line.trim()).filter((line) => line && !line.startsWith('hint:')).join('\n') || 'git 拒绝删除分支')
+      return { status: 409, body: { error: detail, repo, branch } }
+    }
+    invalidateRepoCache(repo)
+    return { status: 200, body: { repo, branch, command: 'branch -d' } }
   }
   return null
 }

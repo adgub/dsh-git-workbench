@@ -288,6 +288,14 @@
                 title: `把 ${branch.name} 合并进 ${headName || '当前分支'}`,
                 onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
               }, '合并'),
+          rowIsCurrent(branch)
+            ? null
+            : h('button', {
+                type: 'button',
+                style: { ...styles.rowButton, flex: '0 0 auto', color: 'var(--dsw-alias-state-error-primary)' },
+                title: `删除本地分支 ${branch.name}。当前所在的分支不能删`,
+                onClick: (event) => { event.preventDefault(); event.stopPropagation(); askDeleteBranch(branch.name) },
+              }, '删除'),
           h('span', { style: { flex: '0 0 auto', fontSize: 12, color: rowIsCurrent(branch) ? 'var(--dsw-alias-label-secondary)' : 'var(--dsw-alias-brand-primary)' } },
             branchBusy === branch.name ? '切换中…' : (rowIsCurrent(branch) ? '当前' : '切换')),
         ))

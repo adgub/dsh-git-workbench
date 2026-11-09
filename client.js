@@ -2474,6 +2474,7 @@ window.__ModuleLoader__.load({
       const [mergePickOpen, setMergePickOpen] = React.useState(false)
       const [branchBusy, setBranchBusy] = React.useState('')
       const [branchError, setBranchError] = React.useState('')
+      const [pendingDelete, setPendingDelete] = React.useState('')
       const [branchDraft, setBranchDraft] = React.useState('')
       const [renameDraft, setRenameDraft] = React.useState('')
       const [syncBusy, setSyncBusy] = React.useState('')
@@ -2937,6 +2938,43 @@ window.__ModuleLoader__.load({
           setBranchBusy('')
         }
       }, [repo, renameDraft, branchBusy, call, flash, refresh, loadRepos])
+
+      const askDeleteBranch = React.useCallback((name) => {
+        if (!repo || !name || branchBusy) return
+        const head = checkedOutBranch(status)
+        if (head && name === head) {
+          setBranchError('不能删除当前所在的分支')
+          return
+        }
+        setBranchMenuOpen(false)
+        setMergePickOpen(false)
+        setPendingDelete(name)
+      }, [repo, branchBusy, status])
+
+      const confirmDeleteBranch = React.useCallback(async () => {
+        const name = pendingDelete
+        if (!repo || !name || branchBusy) return
+        const head = checkedOutBranch(status)
+        if (head && name === head) {
+          setPendingDelete('')
+          setBranchError('不能删除当前所在的分支')
+          return
+        }
+        setBranchBusy(name)
+        setBranchError('')
+        try {
+          await call('branchDelete', { branch: name })
+          setPendingDelete('')
+          setMergeSheet((current) => (current && current.branch === name ? null : current))
+          flash(`已删除本地分支 ${name}`)
+          await refresh(false)
+          loadRepos(true)
+        } catch (failure) {
+          setBranchError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能删除分支。'))
+        } finally {
+          setBranchBusy('')
+        }
+      }, [repo, pendingDelete, branchBusy, status, call, flash, refresh, loadRepos])
 
       const syncBranch = React.useCallback(async (action) => {
         if (!repo || syncBusy || branchBusy) return
@@ -3649,6 +3687,14 @@ window.__ModuleLoader__.load({
                 title: `把 ${branch.name} 合并进 ${headName || '当前分支'}`,
                 onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
               }, '合并'),
+          rowIsCurrent(branch)
+            ? null
+            : h('button', {
+                type: 'button',
+                style: { ...styles.rowButton, flex: '0 0 auto', color: 'var(--dsw-alias-state-error-primary)' },
+                title: `删除本地分支 ${branch.name}。当前所在的分支不能删`,
+                onClick: (event) => { event.preventDefault(); event.stopPropagation(); askDeleteBranch(branch.name) },
+              }, '删除'),
           h('span', { style: { flex: '0 0 auto', fontSize: 12, color: rowIsCurrent(branch) ? 'var(--dsw-alias-label-secondary)' : 'var(--dsw-alias-brand-primary)' } },
             branchBusy === branch.name ? '切换中…' : (rowIsCurrent(branch) ? '当前' : '切换')),
         ))
@@ -3897,6 +3943,14 @@ window.__ModuleLoader__.load({
                         title: `把 ${branch.name} 合并进当前分支`,
                         onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
                       }, '合并'),
+                  rowIsCurrent(branch)
+                    ? null
+                    : h('button', {
+                        type: 'button',
+                        style: { ...styles.rowButton, flex: '0 0 auto', color: 'var(--dsw-alias-state-error-primary)' },
+                        title: `删除本地分支 ${branch.name}。当前所在的分支不能删`,
+                        onClick: (event) => { event.preventDefault(); event.stopPropagation(); askDeleteBranch(branch.name) },
+                      }, '删除'),
                   branchBusy === branch.name
                     ? h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-brand-primary)' } }, '切换中…')
                     : h('span', { style: { flex: '0 0 auto', fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, rowIsCurrent(branch) ? '当前' : '点击切换'),
@@ -4378,6 +4432,50 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
+        pendingDelete
+          ? h('div', {
+              style: {
+                position: 'fixed',
+                inset: 0,
+                zIndex: 50,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0, 0, 0, 0.35)',
+              },
+              onClick: () => { if (!branchBusy) setPendingDelete('') },
+            },
+              h('div', {
+                style: {
+                  width: 360,
+                  maxWidth: 'calc(100% - 32px)',
+                  padding: 12,
+                  borderRadius: 6,
+                  background: 'var(--dsw-alias-bg-layer-2)',
+                  border: '1px solid var(--dsw-alias-border-l1)',
+                  boxShadow: FLOAT_SHADOW,
+                },
+                onClick: (event) => event.stopPropagation(),
+              },
+                h('div', { style: { fontWeight: 700, marginBottom: 6 } }, `删除本地分支 ${pendingDelete}？`),
+                h('div', { style: { fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } }, '只删除这个本地分支，不会改远端。当前所在的分支不能删。还没有合并进其它分支时，git 会拒绝删除。'),
+                h('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 } },
+                  h('button', {
+                    type: 'button',
+                    style: styles.buttonQuiet,
+                    disabled: !!branchBusy,
+                    onClick: () => setPendingDelete(''),
+                  }, '取消'),
+                  h('button', {
+                    type: 'button',
+                    style: { ...styles.button, color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' },
+                    disabled: !!branchBusy,
+                    onClick: () => confirmDeleteBranch(),
+                  }, branchBusy === pendingDelete ? '删除中…' : '删除'),
+                ),
+              ),
+            )
+          : null,
       )
     }
 // @part 14-merge-sheet.js
@@ -4543,9 +4641,12 @@ window.__ModuleLoader__.load({
         !ours
           ? h('div', { style: styles.empty }, sheet.busy ? '正在读取两边的提交…' : '还没有读到两边的提交。')
           : h('div', { style: styles.mergeTop },
-              h(MergeIdentity, { kicker: '你的版本', person: ours, accent: '#3fb950' }),
-              h('div', { style: styles.mergeArrow }, '→'),
               h(MergeIdentity, { kicker: '别人的版本', person: theirs, accent: '#58a6ff' }),
+              h('div', {
+                style: styles.mergeArrow,
+                title: `把 ${theirs && theirs.branch ? theirs.branch : '别人的版本'} 合并进 ${ours && ours.branch ? ours.branch : '当前分支'}`,
+              }, '→'),
+              h(MergeIdentity, { kicker: '你的版本', person: ours, accent: '#3fb950' }),
             ),
         conflicts.length
           ? h('div', { style: styles.mergeAlert }, `${conflicts.length} 个文件冲突。绿色是你的版本，蓝色是别人的版本，黄色分隔线是冲突边界。`)

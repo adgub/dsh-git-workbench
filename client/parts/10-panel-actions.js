@@ -54,6 +54,43 @@
         }
       }, [repo, renameDraft, branchBusy, call, flash, refresh, loadRepos])
 
+      const askDeleteBranch = React.useCallback((name) => {
+        if (!repo || !name || branchBusy) return
+        const head = checkedOutBranch(status)
+        if (head && name === head) {
+          setBranchError('不能删除当前所在的分支')
+          return
+        }
+        setBranchMenuOpen(false)
+        setMergePickOpen(false)
+        setPendingDelete(name)
+      }, [repo, branchBusy, status])
+
+      const confirmDeleteBranch = React.useCallback(async () => {
+        const name = pendingDelete
+        if (!repo || !name || branchBusy) return
+        const head = checkedOutBranch(status)
+        if (head && name === head) {
+          setPendingDelete('')
+          setBranchError('不能删除当前所在的分支')
+          return
+        }
+        setBranchBusy(name)
+        setBranchError('')
+        try {
+          await call('branchDelete', { branch: name })
+          setPendingDelete('')
+          setMergeSheet((current) => (current && current.branch === name ? null : current))
+          flash(`已删除本地分支 ${name}`)
+          await refresh(false)
+          loadRepos(true)
+        } catch (failure) {
+          setBranchError(hostActionError(failure, '宿主半边还是旧版本，重启 DSH 之后才能删除分支。'))
+        } finally {
+          setBranchBusy('')
+        }
+      }, [repo, pendingDelete, branchBusy, status, call, flash, refresh, loadRepos])
+
       const syncBranch = React.useCallback(async (action) => {
         if (!repo || syncBusy || branchBusy) return
         setSyncBusy(action)

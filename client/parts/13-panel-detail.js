@@ -244,5 +244,49 @@
               ),
             )
           : null,
+        pendingDelete
+          ? h('div', {
+              style: {
+                position: 'fixed',
+                inset: 0,
+                zIndex: 50,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0, 0, 0, 0.35)',
+              },
+              onClick: () => { if (!branchBusy) setPendingDelete('') },
+            },
+              h('div', {
+                style: {
+                  width: 360,
+                  maxWidth: 'calc(100% - 32px)',
+                  padding: 12,
+                  borderRadius: 6,
+                  background: 'var(--dsw-alias-bg-layer-2)',
+                  border: '1px solid var(--dsw-alias-border-l1)',
+                  boxShadow: FLOAT_SHADOW,
+                },
+                onClick: (event) => event.stopPropagation(),
+              },
+                h('div', { style: { fontWeight: 700, marginBottom: 6 } }, `删除本地分支 ${pendingDelete}？`),
+                h('div', { style: { fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } }, '只删除这个本地分支，不会改远端。当前所在的分支不能删。还没有合并进其它分支时，git 会拒绝删除。'),
+                h('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 } },
+                  h('button', {
+                    type: 'button',
+                    style: styles.buttonQuiet,
+                    disabled: !!branchBusy,
+                    onClick: () => setPendingDelete(''),
+                  }, '取消'),
+                  h('button', {
+                    type: 'button',
+                    style: { ...styles.button, color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' },
+                    disabled: !!branchBusy,
+                    onClick: () => confirmDeleteBranch(),
+                  }, branchBusy === pendingDelete ? '删除中…' : '删除'),
+                ),
+              ),
+            )
+          : null,
       )
     }

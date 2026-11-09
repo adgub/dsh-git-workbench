@@ -23,7 +23,7 @@
  * - `GIT_TERMINAL_PROMPT=0` so a credential prompt can never hang the route.
  * - Every op has a timeout; output is capped. A timed-out git has its process
  *   tree killed, then lock files that command left under `.git` are removed.
- * - Reads are open. Mutations (`switch`, `branchCreate`, `branchRename`, `pull`,
+ * - Reads are open. Mutations (`switch`, `branchCreate`, `branchRename`, `branchDelete`, `pull`,
  *   `push`, `reveal`, `remoteBind`, `integrate`, `mergeBranch`, `mergeAbort`,
  *   `stage`, `commitCreate`, `uncommit`, `takeSide`) require the panel's
  *   `x-dsh-git-workbench: 1` header, so a cross-origin page cannot trigger them.
