@@ -278,6 +278,8 @@
           title: branch.upstream ? `${branch.name} → ${branch.upstream}` : branch.name,
         },
           h('span', { style: { flex: '0 0 auto', width: 14, color: 'var(--dsw-alias-state-success-primary)' } }, rowIsCurrent(branch) ? '●' : ''),
+          h('span', { style: { flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
+          h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
           rowIsCurrent(branch)
             ? null
             : h('button', {
@@ -286,8 +288,6 @@
                 title: `把 ${branch.name} 合并进 ${headName || '当前分支'}`,
                 onClick: (event) => { event.preventDefault(); event.stopPropagation(); openMerge(branch.name, 'local') },
               }, '合并'),
-          h('span', { style: { flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, branch.name),
-          h('span', { style: { flex: '0 0 auto', fontFamily: monospace, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, branch.sha),
           h('span', { style: { flex: '0 0 auto', fontSize: 12, color: rowIsCurrent(branch) ? 'var(--dsw-alias-label-secondary)' : 'var(--dsw-alias-brand-primary)' } },
             branchBusy === branch.name ? '切换中…' : (rowIsCurrent(branch) ? '当前' : '切换')),
         ))
