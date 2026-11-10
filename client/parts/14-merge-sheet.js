@@ -1,11 +1,11 @@
 // @part 14-merge-sheet.js
 
     const MERGE_ZONE = {
-      ours: { background: 'rgba(63, 185, 80, 0.24)', color: '#7ee787' },
-      'ours-mark': { background: 'rgba(63, 185, 80, 0.5)', color: '#7ee787' },
-      theirs: { background: 'rgba(88, 166, 255, 0.22)', color: '#9ecbff' },
-      'theirs-mark': { background: 'rgba(88, 166, 255, 0.48)', color: '#9ecbff' },
-      split: { background: 'rgba(210, 153, 34, 0.62)', color: '#ffe08a' },
+      ours: { background: 'rgba(26, 127, 55, 0.16)', color: 'var(--dsw-alias-state-success-primary)' },
+      'ours-mark': { background: 'rgba(26, 127, 55, 0.32)', color: 'var(--dsw-alias-state-success-primary)' },
+      theirs: { background: 'rgba(9, 105, 218, 0.12)', color: 'var(--dsw-alias-brand-primary)' },
+      'theirs-mark': { background: 'rgba(9, 105, 218, 0.28)', color: 'var(--dsw-alias-brand-primary)' },
+      split: { background: 'rgba(154, 103, 0, 0.28)', color: 'var(--dsw-alias-state-warn-primary)' },
       out: { background: 'transparent', color: CODE_FG },
     }
 
@@ -89,7 +89,7 @@
           )
         }),
         source.painted.length > shown.length
-          ? h('div', { style: { ...styles.empty, color: '#8b98a8' } }, `只显示前 ${shown.length} 行。`)
+          ? h('div', { style: styles.empty }, `只显示前 ${shown.length} 行。`)
           : null,
       )
     }
@@ -114,7 +114,7 @@
             h('div', { style: styles.mergeSha }, `${(spec.ours && spec.ours.short) || '—'} × ${(spec.theirs && spec.theirs.short) || '—'}`),
             h('div', { style: styles.mergeSubject, title: spec.ours && spec.ours.subject }, `你的 ${spec.ours && spec.ours.short ? spec.ours.short : '—'} · ${spec.ours && spec.ours.subject ? spec.ours.subject : '没有提交备注'}`),
             h('div', { style: styles.mergeSubject, title: spec.theirs && spec.theirs.subject }, `别人的 ${spec.theirs && spec.theirs.short ? spec.theirs.short : '—'} · ${spec.theirs && spec.theirs.subject ? spec.theirs.subject : '没有提交备注'}`),
-            spec.extra ? h('div', { style: { ...styles.mergeSubject, color: '#e3b341', fontWeight: 700 } }, spec.extra) : null,
+            spec.extra ? h('div', { style: { ...styles.mergeSubject, color: 'var(--dsw-alias-state-warn-primary)', fontWeight: 700 } }, spec.extra) : null,
           )
         : h('div', { style: styles.mergeColHead },
             h('div', { style: styles.mergeKicker }, spec.kicker),
@@ -125,7 +125,7 @@
         head,
         h('div', { style: styles.mergeColBody },
           note ? h('div', { style: styles.empty }, note) : h(MergeCode, { text, conflict: spec.kind === 'result' }),
-          spec.body && spec.body.truncated ? h('div', { style: { ...styles.empty, color: '#8b98a8' } }, '文件较大，只显示前面一部分。') : null,
+          spec.body && spec.body.truncated ? h('div', { style: styles.empty }, '文件较大，只显示前面一部分。') : null,
         ),
       )
     }
@@ -179,7 +179,7 @@
                 title: item,
                 style: {
                   ...styles.mergeChip,
-                  ...(item === sheet.filePath ? { borderColor: '#d29922', color: '#e3b341', fontWeight: 700 } : {}),
+                  ...(item === sheet.filePath ? { borderColor: 'var(--dsw-alias-state-warn-primary)', color: 'var(--dsw-alias-state-warn-primary)', fontWeight: 700 } : {}),
                 },
                 onClick: () => props.onSelectFile(item),
               }, item)),

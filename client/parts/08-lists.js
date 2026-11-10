@@ -228,7 +228,7 @@
         ),
         conflictFiles.length
           ? h('div', null,
-              h('div', { style: styles.sectionHead }, h('span', { style: { fontWeight: 700, color: '#e3b341' } }, '冲突')),
+              h('div', { style: styles.sectionHead }, h('span', { style: { fontWeight: 700, color: 'var(--dsw-alias-state-warn-primary)' } }, '冲突')),
               conflictFiles.map((entry) => renderChangeFile(entry, 12, openDiffTab, actions, null, true)),
             )
           : null,

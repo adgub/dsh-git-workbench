@@ -343,9 +343,9 @@
         gap: 8,
         fontSize: 12,
         fontWeight: 700,
-        color: '#e3b341',
-        background: 'rgba(210, 153, 34, 0.18)',
-        border: '1px solid #d29922',
+        color: 'var(--dsw-alias-state-warn-primary)',
+        background: 'rgba(154, 103, 0, 0.12)',
+        border: '1px solid var(--dsw-alias-state-warn-primary)',
       },
       mergePending: {
         margin: '8px 12px 0',

@@ -81,11 +81,11 @@
     }
 
     const DIFF_ROW = {
-      add: { background: 'rgba(63, 185, 80, 0.22)', color: '#7ee787', marker: '#7ee787' },
-      del: { background: 'rgba(248, 81, 73, 0.20)', color: '#ff9b94', marker: '#ff9b94' },
-      hunk: { background: 'rgba(88, 166, 255, 0.14)', color: '#9ecbff', marker: '#9ecbff' },
-      ctx: { background: 'transparent', color: CODE_FG, marker: '#7d8794' },
-      meta: { background: 'transparent', color: '#8b98a8', marker: '#7d8794' },
+      add: { background: 'rgba(26, 127, 55, 0.14)', color: 'var(--dsw-alias-state-success-primary)', marker: 'var(--dsw-alias-state-success-primary)' },
+      del: { background: 'rgba(207, 34, 46, 0.12)', color: 'var(--dsw-alias-state-error-primary)', marker: 'var(--dsw-alias-state-error-primary)' },
+      hunk: { background: 'rgba(9, 105, 218, 0.10)', color: 'var(--dsw-alias-brand-primary)', marker: 'var(--dsw-alias-brand-primary)' },
+      ctx: { background: 'transparent', color: CODE_FG, marker: 'var(--dsw-alias-label-secondary)' },
+      meta: { background: 'transparent', color: 'var(--dsw-alias-label-secondary)', marker: 'var(--dsw-alias-label-secondary)' },
     }
 
     function DiffBody({ text, lang }) {
@@ -106,7 +106,7 @@
           )
         }),
         rows.length > shown.length
-          ? h('div', { style: { ...styles.empty, padding: '8px 12px', color: '#8b98a8' } }, `差异较大，只显示前 ${shown.length} 行（共 ${rows.length} 行）。`)
+          ? h('div', { style: { ...styles.empty, padding: '8px 12px' } }, `差异较大，只显示前 ${shown.length} 行（共 ${rows.length} 行）。`)
           : null,
       )
     }
@@ -121,15 +121,15 @@
           const lineNo = index + 1
           const isAdd = addedSet.has(lineNo)
           const isNear = !isAdd && nearSet.has(lineNo)
-          const background = isAdd ? 'rgba(63, 185, 80, 0.22)' : isNear ? 'rgba(248, 81, 73, 0.18)' : 'transparent'
+          const background = isAdd ? 'rgba(26, 127, 55, 0.14)' : isNear ? 'rgba(207, 34, 46, 0.10)' : 'transparent'
           const marker = isAdd ? '+' : isNear ? '·' : ''
           return h('div', { key: index, style: { ...styles.codeRow, background } },
-            h('span', { style: { ...styles.lineNo, color: isAdd ? '#7ee787' : isNear ? '#ff9b94' : '#7d8794' } }, `${marker} ${lineNo}`.trim()),
+            h('span', { style: { ...styles.lineNo, color: isAdd ? 'var(--dsw-alias-state-success-primary)' : isNear ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-label-secondary)' } }, `${marker} ${lineNo}`.trim()),
             h('span', { style: styles.codeText }, renderHighlighted(line === '' ? ' ' : line, lang)),
           )
         }),
         truncated || lines.length > shown.length
-          ? h('div', { style: { ...styles.empty, padding: '8px 12px', color: '#8b98a8' } },
+          ? h('div', { style: { ...styles.empty, padding: '8px 12px' } },
               `文件较大，只显示前 ${Math.min(shown.length, 6000)} 行${size ? `（共 ${Math.round(size / 1024)} KB）` : ''}。`)
           : null,
       )

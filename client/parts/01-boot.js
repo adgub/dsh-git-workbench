@@ -58,18 +58,19 @@ window.__ModuleLoader__.load({
       '#404040', '#FF4040', '#40FF40', '#FFFF40', '#6060FF', '#FF40FF', '#40FFFF', '#FFFFFF',
     ]
 
-    // Distinct accents a project can wear; the first one is also the fallback.
+    // Distinct accents a project can wear. Green is the fallback. Red is reserved
+    // for errors and untracked files, so it is not in this list.
     const PROJECT_COLORS = [
-      '#58a6ff', '#3fb950', '#d29922', '#f85149', '#a371f7', '#39c5cf',
-      '#db61a2', '#f0883e', '#7ee787', '#8b949e', '#6e7cff', '#e3b341',
+      '#1a7f37', '#0969da', '#9a6700', '#8250df', '#1b7c83', '#bf3989',
+      '#bc4c00', '#2da44e', '#57606a', '#0550ae', '#6639ba', '#6f4e00',
     ]
 
     const monospace = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
-    const FLOAT_SHADOW = '0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08)'
-    const PANE_SHADOW = '0 8px 28px rgba(0, 0, 0, 0.35)'
-    const CODE_BG = '#0e1116'
-    const CODE_FG = '#e8eef7'
-    const GRAPH_LANE_COLORS = ['#79c0ff', '#7ee787', '#e3b341', '#ff7b72', '#d2a8ff', '#56d4dd', '#ff9bce', '#ffa657']
+    const FLOAT_SHADOW = '0 12px 28px rgba(31, 35, 40, 0.16), 0 0 0 1px rgba(31, 35, 40, 0.08)'
+    const PANE_SHADOW = '0 1px 2px rgba(31, 35, 40, 0.08)'
+    const CODE_BG = 'var(--dsw-alias-bg-layer-1)'
+    const CODE_FG = 'var(--dsw-alias-label-primary)'
+    const GRAPH_LANE_COLORS = ['#0969da', '#1a7f37', '#9a6700', '#8250df', '#1b7c83', '#bf3989', '#bc4c00', '#0550ae']
 
     /** Set by the portable page. DSH leaves it unset and keeps the workspace discovery copy. */
     const PORTABLE = typeof window !== 'undefined' && !!window.__gitWorkbenchPortable

@@ -1,19 +1,19 @@
 :root {
-  --dsw-alias-bg-base: #0e1116;
-  --dsw-alias-bg-layer-1: #161b22;
-  --dsw-alias-bg-layer-2: #1c2330;
-  --dsw-alias-bg-l2: #141414;
-  --dsw-alias-label-primary: #e8eef7;
-  --dsw-alias-label-secondary: #9aa7b8;
-  --dsw-alias-label-tertiary: #7a8796;
-  --dsw-alias-border-l1: #2d3644;
-  --dsw-alias-border-l3: #2a2a2a;
-  --dsw-alias-brand-primary: #58a6ff;
-  --dsw-alias-state-success-primary: #3fb950;
-  --dsw-alias-state-error-primary: #f85149;
-  --dsw-alias-state-warn-primary: #d29922;
-  --dsw-alias-state-idle-primary: #8b949e;
-  color-scheme: dark;
+  --dsw-alias-bg-base: #f3f4f6;
+  --dsw-alias-bg-layer-1: #ffffff;
+  --dsw-alias-bg-layer-2: #f6f8fa;
+  --dsw-alias-bg-l2: #eef1f4;
+  --dsw-alias-label-primary: #1f2328;
+  --dsw-alias-label-secondary: #59636e;
+  --dsw-alias-label-tertiary: #6e7781;
+  --dsw-alias-border-l1: #d0d7de;
+  --dsw-alias-border-l3: #d8dee4;
+  --dsw-alias-brand-primary: #0969da;
+  --dsw-alias-state-success-primary: #1a7f37;
+  --dsw-alias-state-error-primary: #cf222e;
+  --dsw-alias-state-warn-primary: #9a6700;
+  --dsw-alias-state-idle-primary: #6e7781;
+  color-scheme: light;
 }
 
 html,

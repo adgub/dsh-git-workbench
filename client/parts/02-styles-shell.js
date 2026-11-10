@@ -95,7 +95,7 @@
         height: 15,
         margin: 0,
         flex: '0 0 auto',
-        accentColor: '#58a6ff',
+        accentColor: 'var(--dsw-alias-state-success-primary)',
         cursor: 'pointer',
       },
       fileActions: { display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' },

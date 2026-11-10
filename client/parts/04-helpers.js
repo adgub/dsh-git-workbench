@@ -100,19 +100,11 @@
       return compact || code
     }
 
-    /** Stable hash so a project keeps its colour between sessions. */
-    function hashString(value) {
-      const text = String(value || '')
-      let hash = 0
-      for (let index = 0; index < text.length; index += 1) hash = (hash * 31 + text.charCodeAt(index)) >>> 0
-      return hash
-    }
-
+    /** Saved colour wins. Otherwise every project starts green. */
     function projectColorFor(path, overrides) {
       const key = normalizeKey(path)
       if (overrides && typeof overrides[key] === 'string' && overrides[key]) return overrides[key]
-      if (!key) return PROJECT_COLORS[0]
-      return PROJECT_COLORS[hashString(key) % PROJECT_COLORS.length]
+      return PROJECT_COLORS[0]
     }
 
     function emptyCounts() {
@@ -199,7 +191,7 @@
     function highlightParts(line, lang) {
       const text = String(line || '')
       if (!lang || !text) return [{ text: text || ' ', color: '' }]
-      if (lang === 'md' && /^#{1,6}\s/.test(text)) return [{ text, color: '#79c0ff' }]
+      if (lang === 'md' && /^#{1,6}\s/.test(text)) return [{ text, color: 'var(--dsw-alias-brand-primary)' }]
       const parts = []
       let i = 0
       const push = (slice, color) => {
@@ -207,24 +199,24 @@
       }
       while (i < text.length) {
         if ((lang === 'c' || lang === 'css' || lang === 'sql') && text.startsWith('//', i)) {
-          push(text.slice(i), '#8b98a8')
+          push(text.slice(i), 'var(--dsw-alias-label-secondary)')
           break
         }
         if (lang === 'hash' && text[i] === '#') {
-          push(text.slice(i), '#8b98a8')
+          push(text.slice(i), 'var(--dsw-alias-label-secondary)')
           break
         }
         if ((lang === 'c' || lang === 'css' || lang === 'sql') && text.startsWith('/*', i)) {
           const end = text.indexOf('*/', i + 2)
           const stop = end === -1 ? text.length : end + 2
-          push(text.slice(i, stop), '#8b98a8')
+          push(text.slice(i, stop), 'var(--dsw-alias-label-secondary)')
           i = stop
           continue
         }
         if (lang === 'html' && text.startsWith('<!--', i)) {
           const end = text.indexOf('-->', i + 4)
           const stop = end === -1 ? text.length : end + 3
-          push(text.slice(i, stop), '#8b98a8')
+          push(text.slice(i, stop), 'var(--dsw-alias-label-secondary)')
           i = stop
           continue
         }
@@ -236,14 +228,14 @@
             if (text[j] === quote) { j += 1; break }
             j += 1
           }
-          push(text.slice(i, j), '#a5d6ff')
+          push(text.slice(i, j), 'var(--dsw-alias-brand-primary)')
           i = j
           continue
         }
         if (/[0-9]/.test(text[i]) && (i === 0 || !/[A-Za-z0-9_]/.test(text[i - 1]))) {
           let j = i + 1
           while (j < text.length && /[0-9.xXa-fA-F_]/.test(text[j])) j += 1
-          push(text.slice(i, j), '#79c0ff')
+          push(text.slice(i, j), 'var(--dsw-alias-brand-primary)')
           i = j
           continue
         }
@@ -252,7 +244,7 @@
           while (j < text.length && /[A-Za-z0-9_]/.test(text[j])) j += 1
           const word = text.slice(i, j)
           const keyword = lang !== 'md' && SOURCE_KEYWORDS.has(word)
-          push(word, keyword ? '#ff8b82' : '')
+          push(word, keyword ? 'var(--dsw-alias-state-error-primary)' : '')
           i = j
           continue
         }

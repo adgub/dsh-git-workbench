@@ -58,18 +58,19 @@ window.__ModuleLoader__.load({
       '#404040', '#FF4040', '#40FF40', '#FFFF40', '#6060FF', '#FF40FF', '#40FFFF', '#FFFFFF',
     ]
 
-    // Distinct accents a project can wear; the first one is also the fallback.
+    // Distinct accents a project can wear. Green is the fallback. Red is reserved
+    // for errors and untracked files, so it is not in this list.
     const PROJECT_COLORS = [
-      '#58a6ff', '#3fb950', '#d29922', '#f85149', '#a371f7', '#39c5cf',
-      '#db61a2', '#f0883e', '#7ee787', '#8b949e', '#6e7cff', '#e3b341',
+      '#1a7f37', '#0969da', '#9a6700', '#8250df', '#1b7c83', '#bf3989',
+      '#bc4c00', '#2da44e', '#57606a', '#0550ae', '#6639ba', '#6f4e00',
     ]
 
     const monospace = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
-    const FLOAT_SHADOW = '0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08)'
-    const PANE_SHADOW = '0 8px 28px rgba(0, 0, 0, 0.35)'
-    const CODE_BG = '#0e1116'
-    const CODE_FG = '#e8eef7'
-    const GRAPH_LANE_COLORS = ['#79c0ff', '#7ee787', '#e3b341', '#ff7b72', '#d2a8ff', '#56d4dd', '#ff9bce', '#ffa657']
+    const FLOAT_SHADOW = '0 12px 28px rgba(31, 35, 40, 0.16), 0 0 0 1px rgba(31, 35, 40, 0.08)'
+    const PANE_SHADOW = '0 1px 2px rgba(31, 35, 40, 0.08)'
+    const CODE_BG = 'var(--dsw-alias-bg-layer-1)'
+    const CODE_FG = 'var(--dsw-alias-label-primary)'
+    const GRAPH_LANE_COLORS = ['#0969da', '#1a7f37', '#9a6700', '#8250df', '#1b7c83', '#bf3989', '#bc4c00', '#0550ae']
 
     /** Set by the portable page. DSH leaves it unset and keeps the workspace discovery copy. */
     const PORTABLE = typeof window !== 'undefined' && !!window.__gitWorkbenchPortable
@@ -183,7 +184,7 @@ window.__ModuleLoader__.load({
         height: 15,
         margin: 0,
         flex: '0 0 auto',
-        accentColor: '#58a6ff',
+        accentColor: 'var(--dsw-alias-state-success-primary)',
         cursor: 'pointer',
       },
       fileActions: { display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' },
@@ -834,9 +835,9 @@ window.__ModuleLoader__.load({
         gap: 8,
         fontSize: 12,
         fontWeight: 700,
-        color: '#e3b341',
-        background: 'rgba(210, 153, 34, 0.18)',
-        border: '1px solid #d29922',
+        color: 'var(--dsw-alias-state-warn-primary)',
+        background: 'rgba(154, 103, 0, 0.12)',
+        border: '1px solid var(--dsw-alias-state-warn-primary)',
       },
       mergePending: {
         margin: '8px 12px 0',
@@ -986,19 +987,11 @@ window.__ModuleLoader__.load({
       return compact || code
     }
 
-    /** Stable hash so a project keeps its colour between sessions. */
-    function hashString(value) {
-      const text = String(value || '')
-      let hash = 0
-      for (let index = 0; index < text.length; index += 1) hash = (hash * 31 + text.charCodeAt(index)) >>> 0
-      return hash
-    }
-
+    /** Saved colour wins. Otherwise every project starts green. */
     function projectColorFor(path, overrides) {
       const key = normalizeKey(path)
       if (overrides && typeof overrides[key] === 'string' && overrides[key]) return overrides[key]
-      if (!key) return PROJECT_COLORS[0]
-      return PROJECT_COLORS[hashString(key) % PROJECT_COLORS.length]
+      return PROJECT_COLORS[0]
     }
 
     function emptyCounts() {
@@ -1085,7 +1078,7 @@ window.__ModuleLoader__.load({
     function highlightParts(line, lang) {
       const text = String(line || '')
       if (!lang || !text) return [{ text: text || ' ', color: '' }]
-      if (lang === 'md' && /^#{1,6}\s/.test(text)) return [{ text, color: '#79c0ff' }]
+      if (lang === 'md' && /^#{1,6}\s/.test(text)) return [{ text, color: 'var(--dsw-alias-brand-primary)' }]
       const parts = []
       let i = 0
       const push = (slice, color) => {
@@ -1093,24 +1086,24 @@ window.__ModuleLoader__.load({
       }
       while (i < text.length) {
         if ((lang === 'c' || lang === 'css' || lang === 'sql') && text.startsWith('//', i)) {
-          push(text.slice(i), '#8b98a8')
+          push(text.slice(i), 'var(--dsw-alias-label-secondary)')
           break
         }
         if (lang === 'hash' && text[i] === '#') {
-          push(text.slice(i), '#8b98a8')
+          push(text.slice(i), 'var(--dsw-alias-label-secondary)')
           break
         }
         if ((lang === 'c' || lang === 'css' || lang === 'sql') && text.startsWith('/*', i)) {
           const end = text.indexOf('*/', i + 2)
           const stop = end === -1 ? text.length : end + 2
-          push(text.slice(i, stop), '#8b98a8')
+          push(text.slice(i, stop), 'var(--dsw-alias-label-secondary)')
           i = stop
           continue
         }
         if (lang === 'html' && text.startsWith('<!--', i)) {
           const end = text.indexOf('-->', i + 4)
           const stop = end === -1 ? text.length : end + 3
-          push(text.slice(i, stop), '#8b98a8')
+          push(text.slice(i, stop), 'var(--dsw-alias-label-secondary)')
           i = stop
           continue
         }
@@ -1122,14 +1115,14 @@ window.__ModuleLoader__.load({
             if (text[j] === quote) { j += 1; break }
             j += 1
           }
-          push(text.slice(i, j), '#a5d6ff')
+          push(text.slice(i, j), 'var(--dsw-alias-brand-primary)')
           i = j
           continue
         }
         if (/[0-9]/.test(text[i]) && (i === 0 || !/[A-Za-z0-9_]/.test(text[i - 1]))) {
           let j = i + 1
           while (j < text.length && /[0-9.xXa-fA-F_]/.test(text[j])) j += 1
-          push(text.slice(i, j), '#79c0ff')
+          push(text.slice(i, j), 'var(--dsw-alias-brand-primary)')
           i = j
           continue
         }
@@ -1138,7 +1131,7 @@ window.__ModuleLoader__.load({
           while (j < text.length && /[A-Za-z0-9_]/.test(text[j])) j += 1
           const word = text.slice(i, j)
           const keyword = lang !== 'md' && SOURCE_KEYWORDS.has(word)
-          push(word, keyword ? '#ff8b82' : '')
+          push(word, keyword ? 'var(--dsw-alias-state-error-primary)' : '')
           i = j
           continue
         }
@@ -1230,11 +1223,11 @@ window.__ModuleLoader__.load({
     }
 
     const DIFF_ROW = {
-      add: { background: 'rgba(63, 185, 80, 0.22)', color: '#7ee787', marker: '#7ee787' },
-      del: { background: 'rgba(248, 81, 73, 0.20)', color: '#ff9b94', marker: '#ff9b94' },
-      hunk: { background: 'rgba(88, 166, 255, 0.14)', color: '#9ecbff', marker: '#9ecbff' },
-      ctx: { background: 'transparent', color: CODE_FG, marker: '#7d8794' },
-      meta: { background: 'transparent', color: '#8b98a8', marker: '#7d8794' },
+      add: { background: 'rgba(26, 127, 55, 0.14)', color: 'var(--dsw-alias-state-success-primary)', marker: 'var(--dsw-alias-state-success-primary)' },
+      del: { background: 'rgba(207, 34, 46, 0.12)', color: 'var(--dsw-alias-state-error-primary)', marker: 'var(--dsw-alias-state-error-primary)' },
+      hunk: { background: 'rgba(9, 105, 218, 0.10)', color: 'var(--dsw-alias-brand-primary)', marker: 'var(--dsw-alias-brand-primary)' },
+      ctx: { background: 'transparent', color: CODE_FG, marker: 'var(--dsw-alias-label-secondary)' },
+      meta: { background: 'transparent', color: 'var(--dsw-alias-label-secondary)', marker: 'var(--dsw-alias-label-secondary)' },
     }
 
     function DiffBody({ text, lang }) {
@@ -1255,7 +1248,7 @@ window.__ModuleLoader__.load({
           )
         }),
         rows.length > shown.length
-          ? h('div', { style: { ...styles.empty, padding: '8px 12px', color: '#8b98a8' } }, `差异较大，只显示前 ${shown.length} 行（共 ${rows.length} 行）。`)
+          ? h('div', { style: { ...styles.empty, padding: '8px 12px' } }, `差异较大，只显示前 ${shown.length} 行（共 ${rows.length} 行）。`)
           : null,
       )
     }
@@ -1270,15 +1263,15 @@ window.__ModuleLoader__.load({
           const lineNo = index + 1
           const isAdd = addedSet.has(lineNo)
           const isNear = !isAdd && nearSet.has(lineNo)
-          const background = isAdd ? 'rgba(63, 185, 80, 0.22)' : isNear ? 'rgba(248, 81, 73, 0.18)' : 'transparent'
+          const background = isAdd ? 'rgba(26, 127, 55, 0.14)' : isNear ? 'rgba(207, 34, 46, 0.10)' : 'transparent'
           const marker = isAdd ? '+' : isNear ? '·' : ''
           return h('div', { key: index, style: { ...styles.codeRow, background } },
-            h('span', { style: { ...styles.lineNo, color: isAdd ? '#7ee787' : isNear ? '#ff9b94' : '#7d8794' } }, `${marker} ${lineNo}`.trim()),
+            h('span', { style: { ...styles.lineNo, color: isAdd ? 'var(--dsw-alias-state-success-primary)' : isNear ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-label-secondary)' } }, `${marker} ${lineNo}`.trim()),
             h('span', { style: styles.codeText }, renderHighlighted(line === '' ? ' ' : line, lang)),
           )
         }),
         truncated || lines.length > shown.length
-          ? h('div', { style: { ...styles.empty, padding: '8px 12px', color: '#8b98a8' } },
+          ? h('div', { style: { ...styles.empty, padding: '8px 12px' } },
               `文件较大，只显示前 ${Math.min(shown.length, 6000)} 行${size ? `（共 ${Math.round(size / 1024)} KB）` : ''}。`)
           : null,
       )
@@ -2263,7 +2256,7 @@ window.__ModuleLoader__.load({
         ),
         conflictFiles.length
           ? h('div', null,
-              h('div', { style: styles.sectionHead }, h('span', { style: { fontWeight: 700, color: '#e3b341' } }, '冲突')),
+              h('div', { style: styles.sectionHead }, h('span', { style: { fontWeight: 700, color: 'var(--dsw-alias-state-warn-primary)' } }, '冲突')),
               conflictFiles.map((entry) => renderChangeFile(entry, 12, openDiffTab, actions, null, true)),
             )
           : null,
@@ -4498,11 +4491,11 @@ window.__ModuleLoader__.load({
 // @part 14-merge-sheet.js
 
     const MERGE_ZONE = {
-      ours: { background: 'rgba(63, 185, 80, 0.24)', color: '#7ee787' },
-      'ours-mark': { background: 'rgba(63, 185, 80, 0.5)', color: '#7ee787' },
-      theirs: { background: 'rgba(88, 166, 255, 0.22)', color: '#9ecbff' },
-      'theirs-mark': { background: 'rgba(88, 166, 255, 0.48)', color: '#9ecbff' },
-      split: { background: 'rgba(210, 153, 34, 0.62)', color: '#ffe08a' },
+      ours: { background: 'rgba(26, 127, 55, 0.16)', color: 'var(--dsw-alias-state-success-primary)' },
+      'ours-mark': { background: 'rgba(26, 127, 55, 0.32)', color: 'var(--dsw-alias-state-success-primary)' },
+      theirs: { background: 'rgba(9, 105, 218, 0.12)', color: 'var(--dsw-alias-brand-primary)' },
+      'theirs-mark': { background: 'rgba(9, 105, 218, 0.28)', color: 'var(--dsw-alias-brand-primary)' },
+      split: { background: 'rgba(154, 103, 0, 0.28)', color: 'var(--dsw-alias-state-warn-primary)' },
       out: { background: 'transparent', color: CODE_FG },
     }
 
@@ -4586,7 +4579,7 @@ window.__ModuleLoader__.load({
           )
         }),
         source.painted.length > shown.length
-          ? h('div', { style: { ...styles.empty, color: '#8b98a8' } }, `只显示前 ${shown.length} 行。`)
+          ? h('div', { style: styles.empty }, `只显示前 ${shown.length} 行。`)
           : null,
       )
     }
@@ -4611,7 +4604,7 @@ window.__ModuleLoader__.load({
             h('div', { style: styles.mergeSha }, `${(spec.ours && spec.ours.short) || '—'} × ${(spec.theirs && spec.theirs.short) || '—'}`),
             h('div', { style: styles.mergeSubject, title: spec.ours && spec.ours.subject }, `你的 ${spec.ours && spec.ours.short ? spec.ours.short : '—'} · ${spec.ours && spec.ours.subject ? spec.ours.subject : '没有提交备注'}`),
             h('div', { style: styles.mergeSubject, title: spec.theirs && spec.theirs.subject }, `别人的 ${spec.theirs && spec.theirs.short ? spec.theirs.short : '—'} · ${spec.theirs && spec.theirs.subject ? spec.theirs.subject : '没有提交备注'}`),
-            spec.extra ? h('div', { style: { ...styles.mergeSubject, color: '#e3b341', fontWeight: 700 } }, spec.extra) : null,
+            spec.extra ? h('div', { style: { ...styles.mergeSubject, color: 'var(--dsw-alias-state-warn-primary)', fontWeight: 700 } }, spec.extra) : null,
           )
         : h('div', { style: styles.mergeColHead },
             h('div', { style: styles.mergeKicker }, spec.kicker),
@@ -4622,7 +4615,7 @@ window.__ModuleLoader__.load({
         head,
         h('div', { style: styles.mergeColBody },
           note ? h('div', { style: styles.empty }, note) : h(MergeCode, { text, conflict: spec.kind === 'result' }),
-          spec.body && spec.body.truncated ? h('div', { style: { ...styles.empty, color: '#8b98a8' } }, '文件较大，只显示前面一部分。') : null,
+          spec.body && spec.body.truncated ? h('div', { style: styles.empty }, '文件较大，只显示前面一部分。') : null,
         ),
       )
     }
@@ -4676,7 +4669,7 @@ window.__ModuleLoader__.load({
                 title: item,
                 style: {
                   ...styles.mergeChip,
-                  ...(item === sheet.filePath ? { borderColor: '#d29922', color: '#e3b341', fontWeight: 700 } : {}),
+                  ...(item === sheet.filePath ? { borderColor: 'var(--dsw-alias-state-warn-primary)', color: 'var(--dsw-alias-state-warn-primary)', fontWeight: 700 } : {}),
                 },
                 onClick: () => props.onSelectFile(item),
               }, item)),
