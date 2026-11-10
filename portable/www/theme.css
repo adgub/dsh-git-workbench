@@ -17,10 +17,17 @@
 }
 
 html,
-body,
-#root {
+body {
   height: 100%;
   margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  width: calc(100% / 1.25);
+  height: calc(100% / 1.25);
+  transform: scale(1.25);
+  transform-origin: 0 0;
 }
 
 body {
