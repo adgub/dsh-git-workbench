@@ -1,7 +1,7 @@
 /** Dispatch one panel operation. Writes require the panel request header. */
 import { clampInt, DEFAULTS, normalizeRoute, splitPathList, viewLimits } from './constants.js'
 import { describeRepoCached, discoverRepositories, resolveRepo, resolveWorkspaces } from './discover.js'
-import { detectGitBash, git } from './git.js'
+import { detectGitBash, git, mutationAllowed, openGitBashWindow } from './git.js'
 import { handleBranchOp } from './ops-branch.js'
 import { handleCommitOp } from './ops-commit.js'
 import { handleMergeOp } from './ops-merge.js'
@@ -15,6 +15,15 @@ export async function handleOp(op, params, host = {}) {
 
   if (op === 'gitBash') {
     return { status: 200, body: await detectGitBash() }
+  }
+
+  if (op === 'openBash') {
+    if (!mutationAllowed(host)) return { status: 403, body: { error: '打开 Git Bash 只能从面板发起' } }
+    const resolved = await resolveRepo(params.repo)
+    if (resolved.error) return { status: 400, body: { error: resolved.error } }
+    const opened = await openGitBashWindow(resolved.root)
+    if (!opened.ok) return { status: 500, body: { error: opened.error } }
+    return { status: 200, body: { repo: resolved.root, gitBash: opened.gitBash } }
   }
 
   if (op === 'repos') {

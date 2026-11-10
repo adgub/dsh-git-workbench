@@ -22,6 +22,8 @@
       const viewRef = React.useRef(null)
       const paneRef = React.useRef(null)
       const bashRetryRef = React.useRef(0)
+      const [bashBusy, setBashBusy] = React.useState(false)
+      const [bashNote, setBashNote] = React.useState('')
 
       // One terminal per project: a project switch (or the 新建 button) gets a
       // fresh content identity, so DSH allocates a new PTY instead of re-adopting
@@ -169,12 +171,44 @@
         return () => window.clearTimeout(timer)
       }, [phase, view, bridge])
 
+      const openPortableBash = React.useCallback(async () => {
+        if (!repo) {
+          setBashNote('先选择一个项目。')
+          return
+        }
+        setBashBusy(true)
+        setBashNote('')
+        try {
+          const params = new URLSearchParams({ op: 'openBash', repo })
+          const response = await fetch(apiUrl(params), {
+            method: 'POST',
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+              'x-dsh-git-workbench': '1',
+            },
+            body: '{}',
+          })
+          const payload = await response.json().catch(() => ({ error: '响应不是合法 JSON' }))
+          if (!response.ok) throw new Error(payload && payload.error ? payload.error : `HTTP ${response.status}`)
+          setBashNote('已打开 Git Bash 窗口，工作目录是当前项目。')
+        } catch (error) {
+          setBashNote(String((error && error.message) || error))
+        } finally {
+          setBashBusy(false)
+        }
+      }, [repo])
+
       const restart = React.useCallback(() => {
+        if (PORTABLE && !servicesReady) {
+          openPortableBash()
+          return
+        }
         // New content identity → a real new PTY; the view effect closes the old one.
         bashRetryRef.current = 0
         setView(null)
         setEpoch((value) => value + 1)
-      }, [])
+      }, [servicesReady, openPortableBash])
 
       React.useEffect(() => {
         if (!view || !writable) return undefined
@@ -267,7 +301,7 @@
       const themeValue = bridge.getTheme()
 
       let status = 'Git Bash'
-      if (!servicesReady) status = '等待终端服务…'
+      if (!servicesReady) status = PORTABLE ? (bashBusy ? '正在打开 Git Bash…' : (bashNote || 'Git Bash 在单独窗口')) : '等待终端服务…'
       else if (!sessionId) status = '没有活动会话'
       else if (shellError) status = shellError
       else if (!shellState) status = '读取 Shell…'
@@ -281,6 +315,44 @@
       }
       else if (phase === 'closed' || infoState === 'exited') status = detail ? `终端已关闭：${detail}` : '终端已关闭'
       else if (phase === 'connected') status = 'Git Bash'
+
+      if (PORTABLE && !servicesReady) {
+        return h('div', {
+          style: {
+            display: 'flex',
+            flexDirection: 'column',
+            flex: '1 1 auto',
+            minWidth: 0,
+            minHeight: 0,
+            height: '100%',
+            background: 'var(--dsw-alias-bg-layer-1)',
+            color: 'var(--dsw-alias-label-primary)',
+          },
+        },
+          h('div', {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              minHeight: 40,
+              padding: '4px 8px',
+              borderBottom: '1px solid var(--dsw-alias-border-l1)',
+            },
+          },
+            h('span', { style: { flex: '1 1 auto', fontWeight: 600 } }, 'Git Bash'),
+            h('button', {
+              style: styles.button,
+              onClick: openPortableBash,
+              disabled: bashBusy || !repo,
+            }, bashBusy ? '正在打开…' : '打开'),
+            h('button', { style: styles.button, title: '收起', onClick: onClose }, '×'),
+          ),
+          h('div', { style: styles.empty },
+            repo ? '点「打开」会另开一个 Git Bash 窗口，目录是当前项目。' : '先选择一个项目，再打开 Git Bash。',
+            bashNote ? h('div', { style: { marginTop: 8 } }, bashNote) : null,
+          ),
+        )
+      }
 
       let body
       if (!servicesReady) {

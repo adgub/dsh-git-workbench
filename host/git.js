@@ -310,8 +310,21 @@ export async function detectGitBash() {
     'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
     path.join(process.env.LOCALAPPDATA || '', 'Programs\\Git\\bin\\bash.exe'),
   )
+  if (process.platform === 'win32') {
+    const found = await whereExecutables('bash.exe')
+    candidates.push(...found)
+    const gits = await whereExecutables('git.exe')
+    for (const gitExe of gits) {
+      const dir = path.dirname(gitExe)
+      candidates.push(
+        path.join(dir, 'bash.exe'),
+        path.resolve(dir, '..', 'bin', 'bash.exe'),
+        path.resolve(dir, '..', 'usr', 'bin', 'bash.exe'),
+      )
+    }
+  }
   for (const candidate of candidates) {
-    if (!candidate) continue
+    if (!candidate || !isGitBash(candidate)) continue
     try {
       const info = await stat(candidate)
       if (info.isFile()) return { gitBash: candidate }
@@ -320,4 +333,74 @@ export async function detectGitBash() {
     }
   }
   return { gitBash: '' }
+}
+
+/** A separate Git Bash window in `repo`. Portable mode has no DSH PTY. */
+export async function openGitBashWindow(repo) {
+  if (process.platform !== 'win32') return { ok: false, error: '当前只在 Windows 上打开 Git Bash 窗口' }
+  const found = await detectGitBash()
+  if (!found.gitBash) return { ok: false, error: '找不到 bash.exe。绿色包的 git\\usr\\bin 里应该有它。' }
+  const launcher = await findGitBashLauncher(found.gitBash)
+  const dir = String(repo || '').replace(/"/g, '')
+  const tail = launcher.args.length ? ` ${launcher.args.join(' ')}` : ''
+  const line = `start "Git Bash" /D "${dir}" "${launcher.command}"${tail}`
+  return new Promise((resolve) => {
+    try {
+      const child = spawn('cmd.exe', ['/d', '/s', '/c', line], {
+        detached: true,
+        windowsHide: true,
+        stdio: 'ignore',
+        env: { ...process.env, CHERE_INVOKING: '1', GIT_OPTIONAL_LOCKS: '0' },
+      })
+      child.once('error', (error) => resolve({ ok: false, error: String((error && error.message) || error) }))
+      child.once('spawn', () => resolve({ ok: true, gitBash: launcher.command }))
+      child.unref()
+    } catch (error) {
+      resolve({ ok: false, error: String((error && error.message) || error) })
+    }
+  })
+}
+
+async function findGitBashLauncher(bashExe) {
+  const dir = path.dirname(bashExe)
+  const candidates = [
+    path.join(dir, 'git-bash.exe'),
+    path.resolve(dir, '..', 'git-bash.exe'),
+    path.resolve(dir, '..', '..', 'git-bash.exe'),
+    path.resolve(dir, '..', '..', '..', 'git-bash.exe'),
+  ]
+  for (const candidate of candidates) {
+    try {
+      const info = await stat(candidate)
+      if (info.isFile()) return { command: candidate, args: [] }
+    } catch {
+      /* bash.exe still opens a console window */
+    }
+  }
+  return { command: bashExe, args: ['--login', '-i'] }
+}
+
+function isGitBash(file) {
+  const text = String(file || '').toLowerCase()
+  if (!text.endsWith('\\bash.exe') && !text.endsWith('\\git-bash.exe')) return false
+  if (text.includes('\\windows\\system32\\') || text.includes('\\windows\\syswow64\\') || text.includes('\\windowsapps\\')) return false
+  return true
+}
+
+function whereExecutables(name) {
+  return new Promise((resolve) => {
+    let out = ''
+    let child
+    try {
+      child = spawn('where.exe', [name], { windowsHide: true, shell: false })
+    } catch {
+      resolve([])
+      return
+    }
+    child.stdout.on('data', (chunk) => { out += chunk.toString('utf8') })
+    child.on('error', () => resolve([]))
+    child.on('close', () => {
+      resolve(out.split(/\r?\n/).map((line) => line.trim()).filter(Boolean))
+    })
+  })
 }

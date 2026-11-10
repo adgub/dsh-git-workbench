@@ -287,6 +287,7 @@ const server = createServer((req, res) => {
 server.on('error', async (error) => {
   if (error && error.code === 'EADDRINUSE' && await alreadyRunning()) {
     console.log(`已经在运行：http://127.0.0.1:${PORT}/`)
+    console.log('浏览器已打开。关掉这个窗口不会退出已经在运行的程序。')
     if (openBrowser) launchBrowser(PORT)
     process.exit(0)
   }

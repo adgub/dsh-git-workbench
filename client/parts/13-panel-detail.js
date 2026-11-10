@@ -99,7 +99,19 @@
         : null
 
       const terminalPane = terminalOpen
-        ? h('div', { style: { ...styles.terminal, width: terminalWidth } },
+        ? h('div', {
+            style: PORTABLE
+              ? {
+                  display: 'flex',
+                  flexDirection: 'column',
+                  width: terminalWidth,
+                  minWidth: 0,
+                  minHeight: 0,
+                  background: 'var(--dsw-alias-bg-layer-1)',
+                  borderLeft: '1px solid var(--dsw-alias-border-l1)',
+                }
+              : { ...styles.terminal, width: terminalWidth },
+          },
             terminalBridge
               ? h(GitTerminalPane, { bridge: terminalBridge, repo, onClose: toggleTerminal })
               : h('div', { style: styles.empty }, 'DSH 终端服务不可用。'),
