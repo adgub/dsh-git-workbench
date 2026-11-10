@@ -2,7 +2,7 @@
 
     function readStore() {
       try {
-        const raw = window.localStorage.getItem(STORE_KEY)
+        const raw = panelStorage().getItem(STORE_KEY)
         const parsed = raw ? JSON.parse(raw) : null
         return parsed && typeof parsed === 'object' ? parsed : {}
       } catch {
@@ -12,7 +12,7 @@
 
     function writeStore(patch) {
       try {
-        window.localStorage.setItem(STORE_KEY, JSON.stringify({ ...readStore(), ...patch }))
+        panelStorage().setItem(STORE_KEY, JSON.stringify({ ...readStore(), ...patch }))
       } catch {
         /* localStorage may be unavailable; the panel still works without persistence */
       }

@@ -194,7 +194,9 @@
         listContent = h('div', { style: styles.empty },
           '选择一个 Git 项目开始。',
           h('br'),
-          '顶部的「选取项目」会列出 DSH 工作区里检测到的 Git 仓库；没有权限或不在工作区里的仓库，可以在同一个弹层里手动填绝对路径添加。',
+          PORTABLE
+            ? '顶部的「选取项目」会列出 workspaces.txt 里的目录；其它仓库可以在同一个弹层里手动填绝对路径。这些选择记在绿色包的 data 目录里。'
+            : '顶部的「选取项目」会列出 DSH 工作区里检测到的 Git 仓库；没有权限或不在工作区里的仓库，可以在同一个弹层里手动填绝对路径添加。',
         )
       } else if (tab === 'changes') {
         if (!status) {
@@ -385,7 +387,7 @@
                 onChange: (event) => setRepoFilter(event.target.value),
               }),
               h('div', { style: styles.popHead },
-                `DSH 工作区检测到 ${auto.repos.filter((entry) => !entry.error).length} 个 Git 项目`
+                `${PORTABLE ? 'workspaces.txt 检测到' : 'DSH 工作区检测到'} ${auto.repos.filter((entry) => !entry.error).length} 个 Git 项目`
                 + (auto.workspaces.length ? ` · ${auto.workspaces.length} 个工作区` : '')
                 + (reposBusy ? ' · 检测中…' : '')),
               visibleRepos.length === 0
@@ -469,7 +471,7 @@
               h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px' } },
                 h('button', { style: styles.buttonQuiet, onClick: () => loadRepos(true), disabled: reposBusy }, reposBusy ? '重新检测中…' : '重新检测'),
                 h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } },
-                  auto.source === 'registry' ? '来源：DSH 工作区注册表' : auto.source === 'storage' ? '来源：DSH 工作区记录文件' : '来源：插件配置'),
+                  auto.source === 'registry' ? '来源：DSH 工作区注册表' : auto.source === 'storage' ? '来源：DSH 工作区记录文件' : auto.source === 'portable' ? '来源：绿色包里的 workspaces.txt' : '来源：插件配置'),
               ),
               h('div', { style: { padding: '4px 8px', fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } },
                 '每行右侧的调色板按钮改这个项目的颜色，箭头按钮在文件管理器里打开项目目录；颜色只影响这个面板。'),

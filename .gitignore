@@ -3,6 +3,11 @@ node_modules/
 
 # 构建产物
 dist/
+
+# 绿色包运行时（由 scripts/pack-portable.mjs 下载，不进仓库）
+portable/runtime/
+portable/git/
+portable/data/*.json
 build/
 out/
 coverage/

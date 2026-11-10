@@ -22,11 +22,21 @@ export async function handleOp(op, params, host = {}) {
     if (!gitProbe.ok) {
       return {
         status: 500,
-        body: { error: '找不到可用的 git 命令：自动检测工作区仓库需要本机安装 Git，并能在 PATH 里找到。' },
+        body: {
+          error: config.portable
+            ? '找不到 git.exe。把便携版 Git 解压到绿色包里的 git\\ 目录（不要运行安装程序），然后重新打开这个窗口。'
+            : '找不到可用的 git 命令：自动检测工作区仓库需要本机安装 Git，并能在 PATH 里找到。',
+        },
       }
     }
-    const workspaces = await resolveWorkspaces(ctx)
-    const extraPaths = splitPathList(config.workspaces)
+    const portableRoots = config.portable ? splitPathList(config.workspaces) : null
+    const workspaces = portableRoots
+      ? {
+          source: 'portable',
+          list: portableRoots.map((dir) => ({ id: dir, title: '', path: dir })),
+        }
+      : await resolveWorkspaces(ctx)
+    const extraPaths = portableRoots ? [] : splitPathList(config.workspaces)
     const scanDepth = clampInt(params.depth, 0, 3, clampInt(config.scanDepth, 0, 3, DEFAULTS.scanDepth))
     const discovered = await discoverRepositories({
       workspaces: workspaces.list,

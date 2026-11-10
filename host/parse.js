@@ -1,4 +1,46 @@
 /** Porcelain, log, branch, and graph text in, plain objects out. */
+
+/**
+ * Porcelain quotes paths that contain non-ASCII or special characters:
+ * `"portable/\344\275\277..."`. The bytes inside are the real path.
+ * Leaving the quotes on makes `git add` look for a file that does not exist.
+ */
+export function unquoteGitPath(value) {
+  const text = String(value || '')
+  if (text.length < 2 || text[0] !== '"' || text[text.length - 1] !== '"') return text
+  const body = text.slice(1, -1)
+  const bytes = []
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index]
+    if (char !== '\\') {
+      const code = body.charCodeAt(index)
+      if (code > 255) return text
+      bytes.push(code)
+      continue
+    }
+    index += 1
+    const next = body[index]
+    if (next === undefined) return text
+    if (next === 'n') bytes.push(10)
+    else if (next === 't') bytes.push(9)
+    else if (next === 'b') bytes.push(8)
+    else if (next === 'f') bytes.push(12)
+    else if (next === 'r') bytes.push(13)
+    else if (next === '"' || next === '\\') bytes.push(next.charCodeAt(0))
+    else if (next >= '0' && next <= '7') {
+      let octal = next
+      let count = 1
+      while (count < 3 && body[index + 1] >= '0' && body[index + 1] <= '7') {
+        index += 1
+        octal += body[index]
+        count += 1
+      }
+      bytes.push(Number.parseInt(octal, 8))
+    } else bytes.push(next.charCodeAt(0))
+  }
+  return Buffer.from(bytes).toString('utf8')
+}
+
 /** Split an XY porcelain v2 code into the two sides that Git tracks. */
 function classify(xy) {
   if (xy === '??') return { untracked: true, staged: false, unstaged: false, ignored: false }
@@ -48,7 +90,7 @@ export function parseStatus(out) {
     }
     let match = line.match(/^1 (\S\S) (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) (.*)$/)
     if (match) {
-      status.files.push({ path: match[8], xy: match[1], kind: 'changed', ...classify(match[1]) })
+      status.files.push({ path: unquoteGitPath(match[8]), xy: match[1], kind: 'changed', ...classify(match[1]) })
       continue
     }
     match = line.match(/^2 (\S\S) (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) (\S+) (.*)$/)
@@ -56,8 +98,8 @@ export function parseStatus(out) {
       const rest = match[9]
       const tab = rest.indexOf('\t')
       status.files.push({
-        path: tab === -1 ? rest : rest.slice(0, tab),
-        from: tab === -1 ? '' : rest.slice(tab + 1),
+        path: unquoteGitPath(tab === -1 ? rest : rest.slice(0, tab)),
+        from: tab === -1 ? '' : unquoteGitPath(rest.slice(tab + 1)),
         xy: match[1],
         kind: 'renamed',
         ...classify(match[1]),
@@ -68,15 +110,15 @@ export function parseStatus(out) {
     if (match) {
       // Remainder is `<sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>`.
       const parts = match[2].split(' ')
-      status.files.push({ path: parts.slice(8).join(' '), xy: match[1], kind: 'conflict', staged: true, unstaged: true })
+      status.files.push({ path: unquoteGitPath(parts.slice(8).join(' ')), xy: match[1], kind: 'conflict', staged: true, unstaged: true })
       continue
     }
     if (line.startsWith('? ')) {
-      status.files.push({ path: line.slice(2), xy: '??', kind: 'untracked', ...classify('??') })
+      status.files.push({ path: unquoteGitPath(line.slice(2)), xy: '??', kind: 'untracked', ...classify('??') })
       continue
     }
     if (line.startsWith('! ')) {
-      status.files.push({ path: line.slice(2), xy: '!!', kind: 'ignored', ...classify('!!') })
+      status.files.push({ path: unquoteGitPath(line.slice(2)), xy: '!!', kind: 'ignored', ...classify('!!') })
     }
   }
   return status

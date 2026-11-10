@@ -5,7 +5,7 @@
         if (typeof current.repo === 'string' && current.repo) return current
         // 0.3.0 kept the single repository under its own key; carry it over once.
         try {
-          const legacy = window.localStorage.getItem('dsh-git-workbench.repo')
+          const legacy = panelStorage().getItem('dsh-git-workbench.repo')
           if (legacy) return { ...current, repo: legacy }
         } catch {
           /* ignore */

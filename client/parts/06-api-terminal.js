@@ -25,7 +25,7 @@
 
     function readStartedTerminals() {
       try {
-        const parsed = JSON.parse(window.localStorage.getItem(GIT_BASH_STARTED_KEY) || '{}')
+        const parsed = JSON.parse(panelStorage().getItem(GIT_BASH_STARTED_KEY) || '{}')
         return parsed && typeof parsed === 'object' ? parsed : {}
       } catch {
         return {}
@@ -40,7 +40,7 @@
         const kept = Object.entries(current)
           .sort((left, right) => (right[1].at || 0) - (left[1].at || 0))
           .slice(0, 24)
-        window.localStorage.setItem(GIT_BASH_STARTED_KEY, JSON.stringify(Object.fromEntries(kept)))
+        panelStorage().setItem(GIT_BASH_STARTED_KEY, JSON.stringify(Object.fromEntries(kept)))
       } catch {
         /* localStorage may be unavailable; duplicate launch is harmless */
       }
@@ -52,7 +52,7 @@
         const current = readStartedTerminals()
         if (!current[id]) return
         delete current[id]
-        window.localStorage.setItem(GIT_BASH_STARTED_KEY, JSON.stringify(current))
+        panelStorage().setItem(GIT_BASH_STARTED_KEY, JSON.stringify(current))
       } catch {
         /* the next launch will send the command again if this write failed */
       }

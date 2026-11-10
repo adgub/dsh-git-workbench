@@ -44,7 +44,9 @@
         contentBody = h('div', { style: styles.empty },
           '还没有选择项目。',
           h('br'),
-          '点左上角的「选取项目」，从 DSH 工作区自动检测出的 Git 仓库里挑一个；也可以手动添加绝对路径。',
+          PORTABLE
+            ? '点左上角的「选取项目」，从 workspaces.txt 列出的目录里挑一个；也可以手动添加绝对路径。'
+            : '点左上角的「选取项目」，从 DSH 工作区自动检测出的 Git 仓库里挑一个；也可以手动添加绝对路径。',
         )
       } else if (!activeTab) {
         contentBody = h('div', { style: styles.empty },
@@ -124,7 +126,7 @@
           }, activeTab ? activeTabPath() : (repo || '未选择项目')),
           h('span', { style: styles.pathSummary },
             !repo
-              ? (reposBusy ? '正在检测 DSH 工作区里的 Git 项目…' : '没有选择项目')
+              ? (reposBusy ? (PORTABLE ? '正在读取 workspaces.txt …' : '正在检测 DSH 工作区里的 Git 项目…') : '没有选择项目')
               : (!status
                   ? (loading ? '读取中…' : '')
                   : (files.length ? `${files.length} 个文件有改动 · ${moduleNames.length} 个模块` : '工作区干净，没有待提交的改动')),

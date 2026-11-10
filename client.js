@@ -71,6 +71,19 @@ window.__ModuleLoader__.load({
     const CODE_FG = '#e8eef7'
     const GRAPH_LANE_COLORS = ['#79c0ff', '#7ee787', '#e3b341', '#ff7b72', '#d2a8ff', '#56d4dd', '#ff9bce', '#ffa657']
 
+    /** Set by the portable page. DSH leaves it unset and keeps the workspace discovery copy. */
+    const PORTABLE = typeof window !== 'undefined' && !!window.__gitWorkbenchPortable
+
+    /**
+     * Panel memory. The portable page installs a folder-backed store so settings
+     * stay inside the green package; DSH keeps using the browser's localStorage.
+     */
+    function panelStorage() {
+      const custom = window.__gitWorkbenchStorage
+      if (custom && typeof custom.getItem === 'function' && typeof custom.setItem === 'function') return custom
+      return window.localStorage
+    }
+
     /** Created by the plugin apply, consumed by the panel registered there. */
     let terminalBridge = null
 // @part 02-styles-shell.js
@@ -875,7 +888,7 @@ window.__ModuleLoader__.load({
 
     function readStore() {
       try {
-        const raw = window.localStorage.getItem(STORE_KEY)
+        const raw = panelStorage().getItem(STORE_KEY)
         const parsed = raw ? JSON.parse(raw) : null
         return parsed && typeof parsed === 'object' ? parsed : {}
       } catch {
@@ -885,7 +898,7 @@ window.__ModuleLoader__.load({
 
     function writeStore(patch) {
       try {
-        window.localStorage.setItem(STORE_KEY, JSON.stringify({ ...readStore(), ...patch }))
+        panelStorage().setItem(STORE_KEY, JSON.stringify({ ...readStore(), ...patch }))
       } catch {
         /* localStorage may be unavailable; the panel still works without persistence */
       }
@@ -1390,7 +1403,7 @@ window.__ModuleLoader__.load({
 
     function readStartedTerminals() {
       try {
-        const parsed = JSON.parse(window.localStorage.getItem(GIT_BASH_STARTED_KEY) || '{}')
+        const parsed = JSON.parse(panelStorage().getItem(GIT_BASH_STARTED_KEY) || '{}')
         return parsed && typeof parsed === 'object' ? parsed : {}
       } catch {
         return {}
@@ -1405,7 +1418,7 @@ window.__ModuleLoader__.load({
         const kept = Object.entries(current)
           .sort((left, right) => (right[1].at || 0) - (left[1].at || 0))
           .slice(0, 24)
-        window.localStorage.setItem(GIT_BASH_STARTED_KEY, JSON.stringify(Object.fromEntries(kept)))
+        panelStorage().setItem(GIT_BASH_STARTED_KEY, JSON.stringify(Object.fromEntries(kept)))
       } catch {
         /* localStorage may be unavailable; duplicate launch is harmless */
       }
@@ -1417,7 +1430,7 @@ window.__ModuleLoader__.load({
         const current = readStartedTerminals()
         if (!current[id]) return
         delete current[id]
-        window.localStorage.setItem(GIT_BASH_STARTED_KEY, JSON.stringify(current))
+        panelStorage().setItem(GIT_BASH_STARTED_KEY, JSON.stringify(current))
       } catch {
         /* the next launch will send the command again if this write failed */
       }
@@ -2427,7 +2440,7 @@ window.__ModuleLoader__.load({
         if (typeof current.repo === 'string' && current.repo) return current
         // 0.3.0 kept the single repository under its own key; carry it over once.
         try {
-          const legacy = window.localStorage.getItem('dsh-git-workbench.repo')
+          const legacy = panelStorage().getItem('dsh-git-workbench.repo')
           if (legacy) return { ...current, repo: legacy }
         } catch {
           /* ignore */
@@ -3593,7 +3606,9 @@ window.__ModuleLoader__.load({
         listContent = h('div', { style: styles.empty },
           '选择一个 Git 项目开始。',
           h('br'),
-          '顶部的「选取项目」会列出 DSH 工作区里检测到的 Git 仓库；没有权限或不在工作区里的仓库，可以在同一个弹层里手动填绝对路径添加。',
+          PORTABLE
+            ? '顶部的「选取项目」会列出 workspaces.txt 里的目录；其它仓库可以在同一个弹层里手动填绝对路径。这些选择记在绿色包的 data 目录里。'
+            : '顶部的「选取项目」会列出 DSH 工作区里检测到的 Git 仓库；没有权限或不在工作区里的仓库，可以在同一个弹层里手动填绝对路径添加。',
         )
       } else if (tab === 'changes') {
         if (!status) {
@@ -3784,7 +3799,7 @@ window.__ModuleLoader__.load({
                 onChange: (event) => setRepoFilter(event.target.value),
               }),
               h('div', { style: styles.popHead },
-                `DSH 工作区检测到 ${auto.repos.filter((entry) => !entry.error).length} 个 Git 项目`
+                `${PORTABLE ? 'workspaces.txt 检测到' : 'DSH 工作区检测到'} ${auto.repos.filter((entry) => !entry.error).length} 个 Git 项目`
                 + (auto.workspaces.length ? ` · ${auto.workspaces.length} 个工作区` : '')
                 + (reposBusy ? ' · 检测中…' : '')),
               visibleRepos.length === 0
@@ -3868,7 +3883,7 @@ window.__ModuleLoader__.load({
               h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px' } },
                 h('button', { style: styles.buttonQuiet, onClick: () => loadRepos(true), disabled: reposBusy }, reposBusy ? '重新检测中…' : '重新检测'),
                 h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } },
-                  auto.source === 'registry' ? '来源：DSH 工作区注册表' : auto.source === 'storage' ? '来源：DSH 工作区记录文件' : '来源：插件配置'),
+                  auto.source === 'registry' ? '来源：DSH 工作区注册表' : auto.source === 'storage' ? '来源：DSH 工作区记录文件' : auto.source === 'portable' ? '来源：绿色包里的 workspaces.txt' : '来源：插件配置'),
               ),
               h('div', { style: { padding: '4px 8px', fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } },
                 '每行右侧的调色板按钮改这个项目的颜色，箭头按钮在文件管理器里打开项目目录；颜色只影响这个面板。'),
@@ -4232,7 +4247,9 @@ window.__ModuleLoader__.load({
         contentBody = h('div', { style: styles.empty },
           '还没有选择项目。',
           h('br'),
-          '点左上角的「选取项目」，从 DSH 工作区自动检测出的 Git 仓库里挑一个；也可以手动添加绝对路径。',
+          PORTABLE
+            ? '点左上角的「选取项目」，从 workspaces.txt 列出的目录里挑一个；也可以手动添加绝对路径。'
+            : '点左上角的「选取项目」，从 DSH 工作区自动检测出的 Git 仓库里挑一个；也可以手动添加绝对路径。',
         )
       } else if (!activeTab) {
         contentBody = h('div', { style: styles.empty },
@@ -4312,7 +4329,7 @@ window.__ModuleLoader__.load({
           }, activeTab ? activeTabPath() : (repo || '未选择项目')),
           h('span', { style: styles.pathSummary },
             !repo
-              ? (reposBusy ? '正在检测 DSH 工作区里的 Git 项目…' : '没有选择项目')
+              ? (reposBusy ? (PORTABLE ? '正在读取 workspaces.txt …' : '正在检测 DSH 工作区里的 Git 项目…') : '没有选择项目')
               : (!status
                   ? (loading ? '读取中…' : '')
                   : (files.length ? `${files.length} 个文件有改动 · ${moduleNames.length} 个模块` : '工作区干净，没有待提交的改动')),

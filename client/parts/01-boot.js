@@ -71,5 +71,18 @@ window.__ModuleLoader__.load({
     const CODE_FG = '#e8eef7'
     const GRAPH_LANE_COLORS = ['#79c0ff', '#7ee787', '#e3b341', '#ff7b72', '#d2a8ff', '#56d4dd', '#ff9bce', '#ffa657']
 
+    /** Set by the portable page. DSH leaves it unset and keeps the workspace discovery copy. */
+    const PORTABLE = typeof window !== 'undefined' && !!window.__gitWorkbenchPortable
+
+    /**
+     * Panel memory. The portable page installs a folder-backed store so settings
+     * stay inside the green package; DSH keeps using the browser's localStorage.
+     */
+    function panelStorage() {
+      const custom = window.__gitWorkbenchStorage
+      if (custom && typeof custom.getItem === 'function' && typeof custom.setItem === 'function') return custom
+      return window.localStorage
+    }
+
     /** Created by the plugin apply, consumed by the panel registered there. */
     let terminalBridge = null

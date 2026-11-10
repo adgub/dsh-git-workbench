@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Git</title>
+  <link rel="stylesheet" href="/theme.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script src="/vendor/react.production.min.js"></script>
+  <script src="/vendor/react-dom.production.min.js"></script>
+  <script>
+    window.__gitWorkbenchPortable = true
+
+    var memory = {}
+    var stateTimer = 0
+
+    function saveState(sync) {
+      var body = JSON.stringify(memory)
+      if (sync) {
+        try {
+          var xhr = new XMLHttpRequest()
+          xhr.open('PUT', '/portable/state', false)
+          xhr.setRequestHeader('content-type', 'application/json')
+          xhr.send(body)
+        } catch (error) { /* the next change tries again */ }
+        return
+      }
+      window.clearTimeout(stateTimer)
+      stateTimer = window.setTimeout(function () {
+        fetch('/portable/state', {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(memory),
+          keepalive: true,
+        }).catch(function () {})
+      }, 80)
+    }
+
+    try {
+      var load = new XMLHttpRequest()
+      load.open('GET', '/portable/state', false)
+      load.send()
+      if (load.status === 200) {
+        var parsed = JSON.parse(load.responseText)
+        if (parsed && typeof parsed === 'object') memory = parsed
+      }
+    } catch (error) { /* start with an empty folder store */ }
+
+    window.__gitWorkbenchStorage = {
+      getItem: function (key) {
+        return Object.prototype.hasOwnProperty.call(memory, key) ? memory[key] : null
+      },
+      setItem: function (key, value) {
+        memory[key] = String(value)
+        saveState(false)
+      },
+      removeItem: function (key) {
+        delete memory[key]
+        saveState(false)
+      },
+    }
+    window.addEventListener('pagehide', function () { saveState(true) })
+
+    window.__ModuleLoader__ = {
+      load: function (spec) {
+        var mod = spec.factory(function (id) {
+          if (id === 'react') return window.React
+          throw new Error('绿色包只提供 react：' + id)
+        })
+        var found = []
+        mod.apply({
+          slots: {
+            inject: function (_name, run) { run() },
+            register: function (_meta, component) { found.push(component) },
+          },
+        })
+        var Panel = found.filter(function (item) { return item && item.name === 'GitWorkbenchPanel' })[0]
+        if (!window.React || !window.ReactDOM || !Panel) {
+          document.getElementById('root').textContent = '页面脚本没有载入完整。请确认 www\\vendor 里有 React。'
+          return
+        }
+        window.ReactDOM.createRoot(document.getElementById('root')).render(window.React.createElement(Panel))
+      },
+    }
+  </script>
+  <script src="/client.js"></script>
+</body>
+</html>

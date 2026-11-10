@@ -1,0 +1,36 @@
+:root {
+  --dsw-alias-bg-base: #0e1116;
+  --dsw-alias-bg-layer-1: #161b22;
+  --dsw-alias-bg-layer-2: #1c2330;
+  --dsw-alias-bg-l2: #141414;
+  --dsw-alias-label-primary: #e8eef7;
+  --dsw-alias-label-secondary: #9aa7b8;
+  --dsw-alias-label-tertiary: #7a8796;
+  --dsw-alias-border-l1: #2d3644;
+  --dsw-alias-border-l3: #2a2a2a;
+  --dsw-alias-brand-primary: #58a6ff;
+  --dsw-alias-state-success-primary: #3fb950;
+  --dsw-alias-state-error-primary: #f85149;
+  --dsw-alias-state-warn-primary: #d29922;
+  --dsw-alias-state-idle-primary: #8b949e;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+}
